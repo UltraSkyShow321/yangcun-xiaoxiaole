@@ -29,7 +29,7 @@ window.YXXL = window.YXXL || {};
     /* 自检模式:在真实游戏页面上运行完整自动测试(仅开发用) */
     if (location.search.indexOf('selftest=1') >= 0) {
       const s2 = document.createElement('script');
-      s2.src = 'test/realtest-driver.js';
+      s2.src = 'test/realtest-driver.js?v=' + Date.now();
       document.body.appendChild(s2);
     }
   });

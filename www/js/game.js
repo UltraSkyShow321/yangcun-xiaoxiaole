@@ -1107,6 +1107,14 @@ window.YXXL = window.YXXL || {};
       return true;
     },
     getSession: function () { return session; },
+    /* 自测钩子:强制渲染一帧(验证画布绘制管线) */
+    __renderTest: function () {
+      if (!session) return false;
+      draw(performance.now());
+      ctx.fillStyle = '#ff0044';
+      ctx.fillRect(5, 5, 20, 20);
+      return true;
+    },
     resize: resize
   };
 })(window.YXXL);

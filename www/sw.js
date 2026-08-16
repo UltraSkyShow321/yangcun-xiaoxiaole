@@ -1,5 +1,5 @@
-/* 羊村消消乐 - Service Worker:离线缓存(应用外壳) */
-const CACHE = 'yxxl-v1';
+/* 羊村消消乐 - Service Worker:网络优先,缓存兜底(离线可玩且永远最新) */
+const CACHE = 'yxxl-v3';
 const SHELL = [
   './',
   './index.html',
@@ -33,13 +33,13 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      return hit || fetch(e.request).then(function (res) {
-        const copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put(e.request, copy); }).catch(function () {});
-        return res;
-      }).catch(function () {
-        return caches.match('./index.html');
+    fetch(e.request).then(function (res) {
+      const copy = res.clone();
+      caches.open(CACHE).then(function (c) { c.put(e.request, copy); }).catch(function () {});
+      return res;
+    }).catch(function () {
+      return caches.match(e.request).then(function (hit) {
+        return hit || (e.request.mode === 'navigate' ? caches.match('./index.html') : undefined);
       });
     })
   );
