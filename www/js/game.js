@@ -22,6 +22,7 @@ window.YXXL = window.YXXL || {};
 
   function easeOutQuad(t) { return t * (2 - t); }
   function easeInQuad(t) { return t * t; }
+  function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
   function easeOutBack(t) { const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
 
   function tweenObj(obj, props, dur, ease, onDone) {
@@ -294,9 +295,10 @@ window.YXXL = window.YXXL || {};
   async function animateSwapTiles(a, b, dur) {
     const g = session.board.grid;
     const va = visualByTile(g[a.r][a.c]), vb = visualByTile(g[b.r][b.c]);
+    const d = dur || 260;
     const tasks = [];
-    if (va) tasks.push(tweenObj(va, { x: b.c, y: b.r }, dur || 230, easeOutQuad));
-    if (vb) tasks.push(tweenObj(vb, { x: a.c, y: a.r }, dur || 230, easeOutQuad));
+    if (va) tasks.push(tweenObj(va, { x: b.c, y: b.r }, d, easeInOutQuad));
+    if (vb) tasks.push(tweenObj(vb, { x: a.c, y: a.r }, d, easeInOutQuad));
     await Promise.all(tasks);
   }
 
@@ -615,6 +617,7 @@ window.YXXL = window.YXXL || {};
     const p = cellFromEvent(e);
     if (p.r < 0 || p.r >= ROWS || p.c < 0 || p.c >= COLS) return;
     const t = s.board.grid[p.r][p.c];
+    s.dragStart = { r: p.r, c: p.c };
     if (s.activeBooster) {
       applyBoosterAt(p.r, p.c);
       renderBoosterBar();
@@ -633,14 +636,46 @@ window.YXXL = window.YXXL || {};
     }
   }
 
+  function onPointerUp() {
+    if (session) session.dragStart = null;
+  }
+
   function onPointerMove(e) {
     const s = session;
     if (!s) return;
     const p = cellFromEvent(e);
     if (p.r >= 0 && p.r < ROWS && p.c >= 0 && p.c < COLS) s.hoverCell = p; else s.hoverCell = null;
+    /* 拖动交换:按住滑到相邻格子立即触发 */
+    if (s.dragStart && s.state === 'idle' && !s.activeBooster && s.selected) {
+      const a = s.selected;
+      const dist = Math.abs(a.r - p.r) + Math.abs(a.c - p.c);
+      if (dist === 1 && !(s.dragStart.r === p.r && s.dragStart.c === p.c)) {
+        s.dragStart = null;
+        trySwap(a, p);
+      }
+    }
   }
 
   /* ---- 绘制 ---- */
+  function drawVisual(v, lift, size) {
+    let x = (v.x + 0.5) * cell, y = (v.y + 0.5) * cell;
+    let s = size * (v.scale || 1);
+    if (lift) {
+      /* 浮起效果:轻微放大 + 投影 + 上移,让交换动画清晰可见 */
+      s *= 1.1;
+      ctx.beginPath();
+      ctx.ellipse(x, y + cell * 0.32, s * 0.44, s * 0.15, 0, 0, 7);
+      ctx.fillStyle = 'rgba(40,40,28,0.3)';
+      ctx.fill();
+      y -= cell * 0.08;
+    }
+    ctx.globalAlpha = v.alpha == null ? 1 : v.alpha;
+    ctx.drawImage(iconFor(v.tile), x - s / 2, y - s / 2, s, s);
+    if (v.tile.ice > 0) ctx.drawImage(N.Assets.img(N.Assets.iceURL()), x - s / 2, y - s / 2, s, s);
+    if (v.tile.chain) ctx.drawImage(N.Assets.img(N.Assets.chainURL()), x - s / 2, y - s / 2, s, s);
+    ctx.globalAlpha = 1;
+  }
+
   function draw(now) {
     ctx.clearRect(0, 0, W, W);
     rr(0, 0, W, W, 12);
@@ -679,17 +714,17 @@ window.YXXL = window.YXXL || {};
         ctx.stroke();
       }
     }
-    /* 棋子 */
+    /* 棋子(滑动中的棋子最后绘制,浮在其它棋子之上) */
     const size = cell * 0.9;
+    const moving = [];
     for (const v of session.visuals) {
-      const x = (v.x + 0.5) * cell, y = (v.y + 0.5) * cell;
-      const s = size * (v.scale || 1);
-      ctx.globalAlpha = v.alpha == null ? 1 : v.alpha;
-      ctx.drawImage(iconFor(v.tile), x - s / 2, y - s / 2, s, s);
-      if (v.tile.ice > 0) ctx.drawImage(N.Assets.img(N.Assets.iceURL()), x - s / 2, y - s / 2, s, s);
-      if (v.tile.chain) ctx.drawImage(N.Assets.img(N.Assets.chainURL()), x - s / 2, y - s / 2, s, s);
-      ctx.globalAlpha = 1;
+      const isMoving = Math.abs(v.x - Math.round(v.x)) > 0.03 ||
+        Math.abs(v.y - Math.round(v.y)) > 0.03 ||
+        Math.abs((v.scale || 1) - 1) > 0.03;
+      if (isMoving) { moving.push(v); continue; }
+      drawVisual(v, false, size);
     }
+    for (const v of moving) drawVisual(v, true, size);
     /* 选中与提示 */
     if (session.selected) {
       const pulse = 0.6 + 0.4 * Math.sin(now / 200);
@@ -845,6 +880,8 @@ window.YXXL = window.YXXL || {};
       window.addEventListener('resize', resize);
       canvas.addEventListener('pointerdown', onPointerDown);
       canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', onPointerUp);
+      canvas.addEventListener('pointercancel', onPointerUp);
       canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
       /* setInterval 驱动:页面隐藏时动画照常推进,避免 rAF 停摆 */
       if (!rafId) { lastT = performance.now(); rafId = setInterval(loop, 33); }
@@ -858,6 +895,7 @@ window.YXXL = window.YXXL || {};
         moves: cfg.moves,
         state: 'idle',
         selected: null,
+        dragStart: null,
         activeBooster: null,
         hoverCell: null,
         boosters: equippedBoosters || {},
