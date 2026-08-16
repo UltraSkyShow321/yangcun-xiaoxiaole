@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>羊村消消乐 - 素材预览</title>
+<style>
+  body { font-family: "Microsoft YaHei", sans-serif; background: #f0f7ea; padding: 20px; }
+  h1 { text-align: center; color: #3d2f1e; }
+  h2 { margin-top: 30px; color: #4a3520; border-left: 6px solid #7ed957; padding-left: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
+  .cell { text-align: center; font-size: 13px; color: #5a4a30; }
+  .cell img { width: 90px; height: 90px; display: block; border-radius: 12px; background: #fff; padding: 4px; }
+  .cell .big { width: 120px; height: 120px; }
+</style>
+</head>
+<body>
+<h1>🐑 羊村消消乐素材预览</h1>
+<h2>消除棋子(带底板)</h2>
+<div class="row" id="row-faces"></div>
+<h2>角色头像(剧情/菜单)</h2>
+<div class="row" id="row-heads"></div>
+<h2>收集物与特殊棋子</h2>
+<div class="row" id="row-specials"></div>
+<h2>障碍覆盖层</h2>
+<div class="row" id="row-overlays"></div>
+<h2>道具图标</h2>
+<div class="row" id="row-boosters"></div>
+<script src="js/assets.js"></script>
+<script>
+(function () {
+  var A = window.YXXL.Assets;
+  var names = ['喜羊羊', '美羊羊', '懒羊羊', '沸羊羊', '暖羊羊', '蕉太狼', '小灰灰', '慢羊羊'];
+  function cell(url, label, big) {
+    var d = document.createElement('div');
+    d.className = 'cell';
+    d.innerHTML = '<img class="' + (big ? 'big' : '') + '" src="' + url + '"><div>' + label + '</div>';
+    return d;
+  }
+  var rf = document.getElementById('row-faces');
+  var rh = document.getElementById('row-heads');
+  var rs = document.getElementById('row-specials');
+  var ro = document.getElementById('row-overlays');
+  var rb = document.getElementById('row-boosters');
+  for (var i = 0; i < A.CHAR_IDS.length; i++) {
+    rf.appendChild(cell(A.faceURL(i), names[i] + '(棋子)', true));
+    rh.appendChild(cell(A.headURL(i), names[i] + '(头像)'));
+  }
+  rh.appendChild(cell(A.wolfHeadURL(), '灰太狼(头像)'));
+  rh.appendChild(cell(A.redwolfURL(), '红太狼(头像)'));
+  rs.appendChild(cell(A.wolfURL(), '灰太狼(收集物)', true));
+  rs.appendChild(cell(A.cakeIngURL(), '青草蛋糕(收集物)', true));
+  rs.appendChild(cell(A.specialURL(0, 'pan'), '平底锅(4连)', true));
+  rs.appendChild(cell(A.specialURL(0, 'cake'), '青草蛋糕(5连)', true));
+  rs.appendChild(cell(A.specialURL(0, 'bomb'), '羊角爆竹(L/T)', true));
+  ro.appendChild(cell(A.iceURL(), '冰层', true));
+  ro.appendChild(cell(A.chainURL(), '锁链', true));
+  ['hammer', 'shuffle', 'moves5', 'pan', 'cake', 'bomb'].forEach(function (k) {
+    rb.appendChild(cell(A.boosterIconURL(k), k, true));
+  });
+})();
+</script>
+</body>
+</html>

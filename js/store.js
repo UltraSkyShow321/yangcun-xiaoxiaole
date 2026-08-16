@@ -16,6 +16,7 @@ window.YXXL = window.YXXL || {};
     return {
       unlocked: 1,
       stars: {},
+      seenIntro: {},
       bells: 120,
       boosters: { hammer: 3, shuffle: 2, moves5: 2, pan: 1, cake: 1, bomb: 1 },
       endlessBest: 0,
@@ -83,6 +84,8 @@ window.YXXL = window.YXXL || {};
       if (score > save.endlessBest) { save.endlessBest = score; persist(); }
       return save.endlessBest;
     },
+    introSeen: function (id) { return !!save.seenIntro[id]; },
+    markIntroSeen: function (id) { save.seenIntro[id] = true; persist(); },
     settings: function () { return save.settings; },
     saveSettings: function (s) { save.settings = s; persist(); }
   };

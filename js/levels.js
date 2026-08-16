@@ -61,7 +61,7 @@ window.YXXL = window.YXXL || {};
   }
 
   const LEVELS = [
-    scoreLv(1, '初入草原', 1500, 20, 5),
+    scoreLv(1, '初入草原', 1200, 22, 5),
     scoreLv(2, '草地热身', 2500, 22, 5),
     scoreLv(3, '铃铛小试', 4000, 24, 5),
     scoreLv(4, '伙伴集结', 5500, 25, 6),

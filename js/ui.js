@@ -8,10 +8,10 @@ window.YXXL = window.YXXL || {};
   };
 
   function avatarURL(who) {
-    if (who === 'huitailang') return N.Assets.wolfURL();
+    if (who === 'huitailang') return N.Assets.wolfHeadURL();
     if (who === 'hongtailang') return N.Assets.redwolfURL();
     const idx = N.Assets.CHAR_IDS.indexOf(who);
-    return N.Assets.faceURL(idx >= 0 ? idx : 0);
+    return N.Assets.headURL(idx >= 0 ? idx : 0);
   }
 
   function $(id) { return document.getElementById(id); }
@@ -105,8 +105,8 @@ window.YXXL = window.YXXL || {};
   /* ---- 进入关卡 ---- */
   function openLevel(id) {
     const cfg = N.Levels.get(id);
-    const firstAttempt = !N.Store.starsFor(id);
-    if (firstAttempt) {
+    if (!N.Store.introSeen(id)) {
+      N.Store.markIntroSeen(id);
       const story = N.Levels.storyForLevelIntro(id);
       if (story) { showStory(story, function () { showPrelevel(cfg, 'level'); }); return; }
     }

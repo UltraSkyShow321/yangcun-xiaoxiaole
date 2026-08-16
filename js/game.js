@@ -132,6 +132,17 @@ window.YXXL = window.YXXL || {};
     const movesEl = el('hud-moves-num');
     movesEl.textContent = s.moves;
     movesEl.classList.toggle('low', s.moves <= 5);
+    /* 状态镜像:便于自动化测试与调试 */
+    canvas.dataset.moves = String(s.moves);
+    canvas.dataset.score = String(s.score);
+    canvas.dataset.board = JSON.stringify(s.board.grid.map(function (row) {
+      return row.map(function (t) {
+        if (!t) return '.';
+        if (t.ingredient) return 'I';
+        if (t.special) return 'S';
+        return String(t.c);
+      });
+    }));
     const obj = el('hud-objective');
     const o = s.cfg.objective;
     if (o.type === 'score') {
@@ -284,7 +295,7 @@ window.YXXL = window.YXXL || {};
   async function resolveCascades() {
     let idx = 0;
     while (true) {
-      const got = session.board.collectBottom();
+      const got = Board.collectBottom(session.board);
       if (got.length) {
         addScore(got.length * 500);
         N.Audio.sfx.collect();
@@ -322,7 +333,7 @@ window.YXXL = window.YXXL || {};
       if (isWin()) { endGame(true); return; }
       if (session.moves <= 0) { endGame(false); return; }
     }
-    const got2 = session.board.collectBottom();
+    const got2 = Board.collectBottom(session.board);
     if (got2.length) {
       addScore(got2.length * 500);
       N.Audio.sfx.collect();
@@ -664,10 +675,8 @@ window.YXXL = window.YXXL || {};
     ctx.stroke();
   }
 
-  function loop(now) {
-    rafId = requestAnimationFrame(loop);
-    const dt = now - lastT;
-    lastT = now;
+  function loop() {
+    const now = performance.now();
     updateTweens(now);
     if (session && session.state !== 'over') {
       if (session.state === 'idle' && session.mode === 'level' && !session.activeBooster) {
@@ -677,7 +686,6 @@ window.YXXL = window.YXXL || {};
       }
       draw(now);
     }
-    void dt;
   }
 
   function resize() {
@@ -702,7 +710,8 @@ window.YXXL = window.YXXL || {};
       canvas.addEventListener('pointerdown', onPointerDown);
       canvas.addEventListener('pointermove', onPointerMove);
       canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-      if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(loop); }
+      /* setInterval 驱动:页面隐藏时动画照常推进,避免 rAF 停摆 */
+      if (!rafId) { lastT = performance.now(); rafId = setInterval(loop, 33); }
     },
     start: function (cfg, mode, equippedBoosters) {
       session = {
@@ -732,6 +741,12 @@ window.YXXL = window.YXXL || {};
     setPaused: function (p) {
       if (!session) return;
       session.state = p ? 'paused' : 'idle';
+    },
+    /* 调试/自测接口:执行一次交换(等同玩家点击两个格子) */
+    debugSwap: async function (a, b) {
+      if (!session || session.state !== 'idle') return false;
+      await trySwap(a, b);
+      return true;
     },
     getSession: function () { return session; },
     resize: resize

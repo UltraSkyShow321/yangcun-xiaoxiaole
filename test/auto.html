@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>羊村消消乐 - 自动化自测</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  #log-overlay {
+    position: fixed; left: 0; top: 0; width: 46vw; height: 100vh; z-index: 9999;
+    background: rgba(20,26,36,0.94); color: #d8e0ea; padding: 14px; overflow: auto;
+    font-size: 13px; line-height: 1.75; white-space: pre-wrap; font-family: Consolas, monospace;
+  }
+  #app { margin-left: 46vw; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 主菜单 -->
+  <section id="screen-menu" class="screen active">
+    <div class="menu-sky"></div>
+    <div class="menu-body">
+      <h1 class="game-title">羊村消消乐</h1>
+      <div class="menu-chars" id="menu-chars"></div>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-levels">关卡冒险</button>
+        <button class="btn" id="btn-endless">无尽挑战</button>
+        <button class="btn" id="btn-shop">羊村商店</button>
+        <button class="btn" id="btn-settings">游戏设置</button>
+      </div>
+      <span class="bells-chip">🔔 <b>0</b></span>
+    </div>
+  </section>
+  <!-- 选关 -->
+  <section id="screen-levels" class="screen">
+    <header class="top-bar">
+      <button class="btn-icon" id="btn-back-menu">←</button>
+      <div class="top-title">选择关卡</div>
+      <span class="bells-chip">🔔 <b>0</b></span>
+    </header>
+    <div id="chapter-tabs" class="chapter-tabs"></div>
+    <div id="level-grid" class="level-grid"></div>
+  </section>
+  <!-- 游戏 -->
+  <section id="screen-game" class="screen">
+    <header class="game-hud">
+      <div class="hud-left">
+        <button class="btn-icon" id="btn-pause">❚❚</button>
+        <div class="hud-moves"><span id="hud-moves-num">0</span><i>步</i></div>
+      </div>
+      <div class="hud-objective" id="hud-objective"></div>
+      <div class="hud-score"><span id="hud-score">0</span><i>分</i></div>
+    </header>
+    <div class="board-wrap"><canvas id="board-canvas"></canvas></div>
+    <div class="booster-bar" id="booster-bar"></div>
+  </section>
+  <!-- 结算 -->
+  <section id="screen-result" class="screen overlay">
+    <div class="panel result-panel" id="result-panel"></div>
+  </section>
+  <!-- 商店 -->
+  <section id="screen-shop" class="screen">
+    <header class="top-bar">
+      <button class="btn-icon" id="btn-shop-back">←</button>
+      <div class="top-title">羊村商店</div>
+      <span class="bells-chip">🔔 <b>0</b></span>
+    </header>
+    <div id="shop-list" class="shop-list"></div>
+  </section>
+  <!-- 设置 -->
+  <section id="screen-settings" class="screen">
+    <header class="top-bar">
+      <button class="btn-icon" id="btn-settings-back">←</button>
+      <div class="top-title">游戏设置</div>
+      <span class="bells-chip">🔔 <b>0</b></span>
+    </header>
+    <div class="settings-list">
+      <button class="btn setting-btn" id="set-music">背景音乐</button>
+      <button class="btn setting-btn" id="set-sfx">游戏音效</button>
+      <button class="btn setting-btn" id="btn-reset">重置全部进度</button>
+    </div>
+  </section>
+  <!-- 剧情 -->
+  <section id="screen-story" class="screen overlay">
+    <div class="story-panel">
+      <div class="story-top">
+        <img id="story-avatar" class="story-avatar" alt="">
+        <div class="story-name" id="story-name"></div>
+        <button class="btn btn-small" id="story-skip">跳过</button>
+      </div>
+      <div class="story-text" id="story-text"></div>
+      <div class="story-hint">点击继续 ▸</div>
+    </div>
+  </section>
+  <!-- 关卡前准备 -->
+  <section id="screen-prelevel" class="screen overlay">
+    <div class="panel prelevel-panel">
+      <h2 id="prelevel-title">关卡</h2>
+      <p class="prelevel-desc" id="prelevel-desc"></p>
+      <p class="prelevel-meta" id="prelevel-meta"></p>
+      <div class="prelevel-boosters" id="prelevel-boosters"></div>
+      <div class="prelevel-btns">
+        <button class="btn" id="btn-prelevel-back">返回</button>
+        <button class="btn btn-primary" id="btn-start-level">开始!</button>
+      </div>
+    </div>
+  </section>
+  <!-- 暂停 -->
+  <section id="screen-pause" class="screen overlay">
+    <div class="panel pause-panel">
+      <h2>暂停中</h2>
+      <button class="btn btn-primary" id="btn-resume">继续游戏</button>
+      <button class="btn" id="btn-restart">重新开始</button>
+      <button class="btn" id="btn-quit">退出本关</button>
+    </div>
+  </section>
+  <div id="toast-wrap"></div>
+</div>
+<div id="log-overlay">初始化…</div>
+<script src="../js/audio.js"></script>
+<script src="../js/assets.js"></script>
+<script src="../js/store.js"></script>
+<script src="../js/levels.js"></script>
+<script src="../js/board.js"></script>
+<script src="../js/game.js"></script>
+<script src="../js/ui.js"></script>
+<script>
+(function () {
+  var N = window.YXXL;
+  var logEl = document.getElementById('log-overlay');
+  var lines = [];
+  var pass = 0, fail = 0;
+  function log(msg, ok) {
+    lines.push((ok === false ? '❌ ' : (ok === true ? '✅ ' : '· ')) + msg);
+    logEl.textContent = lines.join('\n');
+    if (ok === true) pass++;
+    if (ok === false) fail++;
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function active(id) {
+    return document.getElementById(id).classList.contains('active');
+  }
+  function click(id) {
+    var el = document.getElementById(id);
+    if (!el) return false;
+    el.click();
+    return true;
+  }
+
+  var T = {
+    assets: function () {
+      return N.Assets.preload().then(function () {
+        var all = true;
+        for (var i = 0; i < N.Assets.CHAR_IDS.length; i++) {
+          var a = N.Assets.img(N.Assets.faceURL(i));
+          var b = N.Assets.img(N.Assets.headURL(i));
+          if (!a.complete || a.naturalWidth === 0 || !b.complete || b.naturalWidth === 0) all = false;
+        }
+        ['wolfURL', 'wolfHeadURL', 'redwolfURL', 'cakeIngURL', 'iceURL', 'chainURL'].forEach(function (fn) {
+          var im = N.Assets.img(N.Assets[fn]());
+          if (!im.complete || im.naturalWidth === 0) all = false;
+        });
+        log('素材加载(8角色 + 狼族 + 特殊棋子 + 障碍)', all);
+      });
+    },
+    levelFlow: async function () {
+      N.Store.reset();
+      N.UI.buildLevels();
+      N.UI.openLevel(1);
+      await sleep(700);
+      if (!active('screen-story')) { log('进入第1关未弹出剧情', false); return false; }
+      log('剧情对话弹出', true);
+      click('story-skip');
+      await sleep(500);
+      if (!active('screen-prelevel')) { log('跳过剧情后未进入准备界面', false); return false; }
+      log('关卡准备界面显示(含道具栏)', true);
+      click('btn-start-level');
+      await sleep(1300);
+      if (!active('screen-game')) { log('开始按钮未进入游戏', false); return false; }
+      var s = N.Game.getSession();
+      log('游戏开始,棋盘生成 ' + s.visuals.length + '/81 个棋子', s.visuals.length === 81);
+      /* 找消除规模最大的步 */
+      function runLen(g, r, c, dr, dc) {
+        var col = g[r][c].c;
+        var n = 1;
+        for (var d = 1; d < 9; d++) {
+          var rr = r + dr * d, cc = c + dc * d;
+          if (rr < 0 || rr > 8 || cc < 0 || cc > 8 || !g[rr][cc] || g[rr][cc].ingredient || g[rr][cc].c !== col) break;
+          n++;
+        }
+        for (var d2 = 1; d2 < 9; d2++) {
+          var rr2 = r - dr * d2, cc2 = c - dc * d2;
+          if (rr2 < 0 || rr2 > 8 || cc2 < 0 || cc2 > 8 || !g[rr2][cc2] || g[rr2][cc2].ingredient || g[rr2][cc2].c !== col) break;
+          n++;
+        }
+        return n;
+      }
+      function bestMove(board) {
+        var g = board.grid;
+        var best = null, bestScore = 0;
+        for (var r = 0; r < 9; r++) for (var c = 0; c < 9; c++) {
+          var t = g[r][c];
+          if (!t || t.ingredient) continue;
+          var dirs = [[0, 1], [1, 0]];
+          for (var i = 0; i < dirs.length; i++) {
+            var nr = r + dirs[i][0], nc = c + dirs[i][1];
+            if (nr > 8 || nc > 8) continue;
+            var tn = g[nr][nc];
+            if (!tn || tn.ingredient) continue;
+            var tmp = g[r][c];
+            g[r][c] = g[nr][nc];
+            g[nr][nc] = tmp;
+            var h1 = runLen(g, r, c, 0, 1), v1 = runLen(g, r, c, 1, 0);
+            var h2 = runLen(g, nr, nc, 0, 1), v2 = runLen(g, nr, nc, 1, 0);
+            var score = (h1 >= 3 ? h1 : 0) + (v1 >= 3 ? v1 : 0) + (h2 >= 3 ? h2 : 0) + (v2 >= 3 ? v2 : 0);
+            var tmp2 = g[r][c];
+            g[r][c] = g[nr][nc];
+            g[nr][nc] = tmp2;
+            if (score > bestScore) { bestScore = score; best = [{ r: r, c: c }, { r: nr, c: nc }]; }
+          }
+        }
+        return best;
+      }
+      var guard = 0;
+      while (s.state !== 'over' && guard < 40) {
+        guard++;
+        if (s.state !== 'idle') { await sleep(400); continue; }
+        var mv = bestMove(s.board) || N.Board.findPossibleMove(s.board);
+        if (!mv) { await sleep(1300); continue; }
+        await N.Game.debugSwap({ r: mv[0].r, c: mv[0].c }, { r: mv[1].r, c: mv[1].c });
+        await sleep(200);
+      }
+      await sleep(1200);
+      var won = s.win;
+      log('对局结束:胜利=' + won + ',分数=' + s.score + '(目标' + s.cfg.objective.target + ')', won && s.score >= s.cfg.objective.target);
+      if (active('screen-result')) {
+        var panel = document.getElementById('result-panel').innerText;
+        log('胜利结算面板: ' + panel.replace(/\n/g, ' '), true);
+      } else {
+        log('胜利后未弹出结算面板', false);
+      }
+      log('星级已存档', N.Store.starsFor(1) >= 1);
+      log('第2关已解锁', N.Store.levelUnlocked(2));
+      return true;
+    },
+    loseFlow: async function () {
+      var cfg = JSON.parse(JSON.stringify(N.Levels.get(2)));
+      cfg.moves = 3;
+      cfg.objective.target = 99999;
+      cfg.stars = [99999, 99999, 99999];
+      N.Game.start(cfg, 'level', {});
+      N.UI.showScreen('screen-game');
+      await sleep(800);
+      var s = N.Game.getSession();
+      var guard = 0;
+      while (s.state !== 'over' && guard < 12) {
+        guard++;
+        if (s.state !== 'idle') { await sleep(400); continue; }
+        var mv = N.Board.findPossibleMove(s.board);
+        if (!mv) { await sleep(1000); continue; }
+        await N.Game.debugSwap({ r: mv[0].r, c: mv[0].c }, { r: mv[1].r, c: mv[1].c });
+        await sleep(200);
+      }
+      await sleep(900);
+      var panel = document.getElementById('result-panel');
+      var lost = panel && panel.innerText.indexOf('失败') >= 0;
+      log('步数耗尽失败结算(含灰太狼嘲讽)', lost);
+      click('btn-result-next');
+      await sleep(600);
+      log('重试直接进入准备界面(不重复剧情)', active('screen-prelevel') && !active('screen-story'));
+    },
+    boosters: async function () {
+      var cfg = JSON.parse(JSON.stringify(N.Levels.get(1)));
+      var equipped = { moves5: 1, shuffle: 1, hammer: 1 };
+      N.Store.get().boosters.moves5 = 3;
+      N.Game.start(cfg, 'level', equipped);
+      N.UI.showScreen('screen-game');
+      await sleep(800);
+      var s = N.Game.getSession();
+      var before = s.moves;
+      var btns = document.querySelectorAll('.boost-btn');
+      if (!btns.length) { log('道具栏未渲染', false); return; }
+      btns[2].click();
+      await sleep(500);
+      log('加步器:+5步 (' + before + '→' + s.moves + ')', s.moves === before + 5);
+      log('加步器库存扣减', N.Store.boosterCount('moves5') === 2);
+      N.Game.setPaused(true);
+    },
+    shop: async function () {
+      var bellsBefore = N.Store.get().bells;
+      var cntBefore = N.Store.boosterCount('hammer');
+      N.UI.buildShop();
+      N.UI.showScreen('screen-shop');
+      await sleep(400);
+      var buyBtn = document.querySelector('.shop-card .btn');
+      if (!buyBtn) { log('商店卡片未渲染', false); return; }
+      buyBtn.click();
+      await sleep(400);
+      log('购买小锤:铃铛 ' + bellsBefore + '→' + N.Store.get().bells + ',库存 ' + cntBefore + '→' + N.Store.boosterCount('hammer'),
+        N.Store.get().bells === bellsBefore - 20 && N.Store.boosterCount('hammer') === cntBefore + 1);
+    },
+    endless: async function () {
+      N.UI.showPrelevel(N.Levels.ENDLESS, 'endless');
+      await sleep(400);
+      click('btn-start-level');
+      await sleep(1100);
+      var s = N.Game.getSession();
+      var ok = s && s.mode === 'endless' && s.moves === 60;
+      log('无尽模式开始(60步)', ok);
+      if (ok) {
+        var mv = N.Board.findPossibleMove(s.board);
+        if (mv) {
+          await N.Game.debugSwap({ r: mv[0].r, c: mv[0].c }, { r: mv[1].r, c: mv[1].c });
+          await sleep(1000);
+          log('无尽模式可正常对局', s.moves === 59);
+        }
+      }
+      N.Audio.stopMusic();
+    },
+    save: async function () {
+      var before = N.Store.get().bells;
+      N.Store.addBells(7);
+      var saved = JSON.parse(localStorage.getItem('yxxl_save_v1'));
+      var ok1 = saved && saved.bells === before + 7;
+      N.Store.get().bells = before;
+      N.Store.save();
+      log('localStorage 存档写入', ok1);
+    },
+    collectLevel: async function () {
+      /* 收集关端到端:灰太狼掉落收集 */
+      var cfg = N.Levels.get(5);
+      N.Game.start(cfg, 'level', {});
+      N.UI.showScreen('screen-game');
+      await sleep(900);
+      var s = N.Game.getSession();
+      function findWolf(board) {
+        for (var r = 0; r < 9; r++) for (var c = 0; c < 9; c++) {
+          var t = board.grid[r][c];
+          if (t && t.ingredient) return { r: r, c: c };
+        }
+        return null;
+      }
+      function collectMove(board) {
+        var g = board.grid;
+        var w = findWolf(board);
+        var best = null, bestScore = -1;
+        for (var r = 0; r < 9; r++) for (var c = 0; c < 9; c++) {
+          var t = g[r][c];
+          if (!t || t.ingredient) continue;
+          for (var i = 0; i < 2; i++) {
+            var nr = r + (i === 0 ? 0 : 1), nc = c + (i === 0 ? 1 : 0);
+            if (nr > 8 || nc > 8) continue;
+            var tn = g[nr][nc];
+            if (!tn || tn.ingredient) continue;
+            if (!(t.special || tn.special) && !N.Board.swapCreatesMatch(board, r, c, nr, nc)) continue;
+            var score = 0;
+            if (t.special || tn.special) score += 12;
+            if (w) {
+              if (c === w.c && r >= w.r) score += 10;
+              if (nc === w.c && nr >= w.r) score += 10;
+              if (c === w.c || nc === w.c) score += 3;
+              if (Math.abs(c - w.c) === 1) score += 1;
+              if (Math.abs(nc - w.c) === 1) score += 1;
+            }
+            if (score > bestScore) { bestScore = score; best = [{ r: r, c: c }, { r: nr, c: nc }]; }
+          }
+        }
+        return best;
+      }
+      var guard = 0;
+      while (s.state !== 'over' && guard < 60) {
+        guard++;
+        if (s.state !== 'idle') { await sleep(400); continue; }
+        var mv = collectMove(s.board);
+        if (!mv) { await sleep(1200); continue; }
+        await N.Game.debugSwap({ r: mv[0].r, c: mv[0].c }, { r: mv[1].r, c: mv[1].c });
+        await sleep(200);
+      }
+      await sleep(1100);
+      log('收集关(L5)对局:胜利=' + s.win + ',收集灰太狼 ' + s.board.collected + '/2,分数 ' + s.score,
+        s.win && s.board.collected >= 2);
+      log('收集关结算面板显示', active('screen-result'));
+    }
+  };
+
+  async function run() {
+    log('羊村消消乐 v1.0 自动化自测开始');
+    N.Store.load();
+    N.Game.init();
+    N.UI.init();
+    await T.assets();
+    await T.levelFlow();
+    await T.loseFlow();
+    await T.boosters();
+    await T.shop();
+    await T.endless();
+    await T.collectLevel();
+    await T.save();
+    log('');
+    log('自测完成:通过 ' + pass + ' 项,失败 ' + fail + ' 项', fail === 0);
+    logEl.textContent = lines.join('\n') + '\n' + (fail === 0 ? '✅ 全部通过' : '❌ 存在失败项');
+  }
+  run().catch(function (e) {
+    log('自测异常: ' + e.message + ' @ ' + (e.stack || '').split('\n')[1], false);
+  });
+})();
+</script>
+</body>
+</html>

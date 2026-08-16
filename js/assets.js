@@ -1,4 +1,4 @@
-/* 羊村消消乐 - 自绘 Q 版素材(全部原创 SVG,避免版权问题) */
+/* 羊村消消乐 - 自绘 Q 版素材(原创绘制,贴合原动画形象特征) */
 window.YXXL = window.YXXL || {};
 (function (N) {
   function svgUrl(inner) {
@@ -6,151 +6,231 @@ window.YXXL = window.YXXL || {};
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' + inner + '</svg>'
     );
   }
-  function dk(hex, f) {
-    const n = parseInt(hex.slice(1), 16);
-    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-    r = Math.max(0, Math.round(r * (f || 0.55)));
-    g = Math.max(0, Math.round(g * (f || 0.55)));
-    b = Math.max(0, Math.round(b * (f || 0.55)));
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
-  }
-  function lite(hex) {
-    const n = parseInt(hex.slice(1), 16);
-    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-    const mix = (v) => Math.min(255, Math.round(v + (255 - v) * 0.55));
-    return 'rgb(' + mix(r) + ',' + mix(g) + ',' + mix(b) + ')';
-  }
 
-  const EYES = (dark) => (
-    '<ellipse cx="45" cy="52" rx="10" ry="12" fill="#fff" stroke="' + dark + '" stroke-width="2.5"/>' +
-    '<circle cx="46" cy="55" r="4.5" fill="#33251f"/>' +
-    '<circle cx="48" cy="52.5" r="1.8" fill="#fff"/>' +
-    '<ellipse cx="75" cy="52" rx="10" ry="12" fill="#fff" stroke="' + dark + '" stroke-width="2.5"/>' +
-    '<circle cx="74" cy="55" r="4.5" fill="#33251f"/>' +
-    '<circle cx="72" cy="52.5" r="1.8" fill="#fff"/>'
-  );
-  const MOUTH = (dark) => (
-    '<path d="M52 73 Q60 80 68 73" stroke="' + dark + '" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
-  );
-
-  function head(color, acc, opts) {
-    opts = opts || {};
-    const dark = dk(color);
-    const behind = opts.behind || '';
-    const eyes = opts.eyes !== undefined ? opts.eyes : EYES(dark);
-    const mouth = opts.mouth !== undefined ? opts.mouth : MOUTH(dark);
+  /* 棋子底板:圆角方块 + 渐变 + 高光 */
+  function tile(cA, cB, inner) {
     return svgUrl(
-      behind +
-      '<circle cx="60" cy="62" r="52" fill="' + color + '" stroke="' + dark + '" stroke-width="4"/>' +
-      '<ellipse cx="44" cy="33" rx="20" ry="9" fill="rgba(255,255,255,0.35)"/>' +
-      eyes + mouth + (acc || '')
+      '<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + cA + '"/><stop offset="1" stop-color="' + cB + '"/>' +
+      '</linearGradient></defs>' +
+      '<rect x="4" y="4" width="112" height="112" rx="26" fill="url(#tg)" stroke="' + cB + '" stroke-width="4"/>' +
+      '<rect x="13" y="13" width="94" height="94" rx="19" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="3"/>' +
+      '<ellipse cx="44" cy="32" rx="28" ry="12" fill="rgba(255,255,255,0.22)"/>' +
+      inner
     );
   }
 
-  const WOLF_EARS = (color, dark, inner) => (
-    '<path d="M22 34 L9 2 L47 18 Z" fill="' + color + '" stroke="' + dark + '" stroke-width="3"/>' +
-    '<path d="M98 34 L111 2 L73 18 Z" fill="' + color + '" stroke="' + dark + '" stroke-width="3"/>' +
-    '<path d="M20 27 L13 9 L37 19 Z" fill="' + inner + '"/>' +
-    '<path d="M100 27 L107 9 L83 19 Z" fill="' + inner + '"/>'
+  const EYES = (
+    '<ellipse cx="48" cy="62" rx="7.5" ry="9.5" fill="#2b2320"/>' +
+    '<circle cx="50.5" cy="58" r="2.6" fill="#fff"/>' +
+    '<ellipse cx="72" cy="62" rx="7.5" ry="9.5" fill="#2b2320"/>' +
+    '<circle cx="69.5" cy="58" r="2.6" fill="#fff"/>'
   );
+  const LASHES = (
+    '<path d="M37 55 l-4 -6 M35 60 l-6 -2 M37 65 l-4 6" stroke="#5a4636" stroke-width="2" stroke-linecap="round" fill="none"/>' +
+    '<path d="M83 55 l4 -6 M85 60 l6 -2 M83 65 l4 6" stroke="#5a4636" stroke-width="2" stroke-linecap="round" fill="none"/>'
+  );
+  const MOUTH = '<path d="M54 76 Q60 81 66 76" stroke="#6b5240" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+  const BLUSH = '<ellipse cx="36" cy="72" rx="6" ry="4" fill="#ffb8c8" opacity="0.75"/>' +
+    '<ellipse cx="84" cy="72" rx="6" ry="4" fill="#ffb8c8" opacity="0.75"/>';
 
+  /* 绵羊头:羊毛云朵 + 脸 + 角/配件 */
+  function sheepHead(o) {
+    const woolEdge = o.woolEdge || '#e0d8c2';
+    return (
+      (o.horns || '') +
+      '<circle cx="60" cy="58" r="37" fill="' + o.wool + '" stroke="' + woolEdge + '" stroke-width="2.5"/>' +
+      '<circle cx="33" cy="42" r="23" fill="' + o.wool + '" stroke="' + woolEdge + '" stroke-width="2.5"/>' +
+      '<circle cx="87" cy="42" r="23" fill="' + o.wool + '" stroke="' + woolEdge + '" stroke-width="2.5"/>' +
+      '<circle cx="60" cy="33" r="21" fill="' + o.wool + '" stroke="' + woolEdge + '" stroke-width="2.5"/>' +
+      '<circle cx="45" cy="29" r="14" fill="' + o.wool + '" stroke="' + woolEdge + '" stroke-width="2.5"/>' +
+      '<circle cx="75" cy="29" r="14" fill="' + o.wool + '" stroke="' + woolEdge + '" stroke-width="2.5"/>' +
+      '<ellipse cx="60" cy="66" rx="23" ry="21" fill="' + (o.skin || '#fffaf0') + '" stroke="' + (o.skinEdge || '#e2d6c0') + '" stroke-width="2"/>' +
+      (o.eyes || EYES) +
+      (o.mouth || MOUTH) +
+      (o.acc || '')
+    );
+  }
+
+  function horns(fill, edge) {
+    return (
+      '<path d="M40 30 Q22 26 25 6 Q38 16 48 25 Z" fill="' + fill + '" stroke="' + edge + '" stroke-width="2.5"/>' +
+      '<path d="M80 30 Q98 26 95 6 Q82 16 72 25 Z" fill="' + fill + '" stroke="' + edge + '" stroke-width="2.5"/>'
+    );
+  }
+
+  /* 狼头:尖耳 + 吻部 + 獠牙 */
+  function wolfHead(o) {
+    return (
+      '<path d="M28 34 L15 2 L50 17 Z" fill="' + o.fur + '" stroke="' + o.edge + '" stroke-width="3"/>' +
+      '<path d="M92 34 L105 2 L70 17 Z" fill="' + o.fur + '" stroke="' + o.edge + '" stroke-width="3"/>' +
+      '<path d="M26 28 L19 9 L44 18 Z" fill="' + o.inner + '"/>' +
+      '<path d="M94 28 L101 9 L76 18 Z" fill="' + o.inner + '"/>' +
+      '<circle cx="60" cy="58" r="37" fill="' + o.fur + '" stroke="' + o.edge + '" stroke-width="3"/>' +
+      '<ellipse cx="60" cy="70" rx="19" ry="14" fill="' + o.muzzle + '" stroke="' + o.edge + '" stroke-width="2.5"/>' +
+      '<ellipse cx="60" cy="63.5" rx="6.5" ry="4.5" fill="#2c2c34"/>' +
+      (o.eyes || '') +
+      (o.mouth || '') +
+      (o.acc || '')
+    );
+  }
+
+  const FANGS = '<path d="M51 75 l6 9 6 -9 z" fill="#fff" stroke="#3c3c44" stroke-width="1.5"/>' +
+    '<path d="M61 75 l6 9 6 -9 z" fill="#fff" stroke="#3c3c44" stroke-width="1.5"/>';
+
+  /* ---- 8 个消除棋子(头像内容,不含底板) ---- */
   const FACES = {
-    xiyangyang: {
-      color: '#5BA8E8',
-      acc: '<path d="M34 26 Q25 8 44 16 Q35 22 42 32 Z" fill="#fff" stroke="#c9d8e6" stroke-width="2.5"/>' +
-           '<path d="M86 26 Q95 8 76 16 Q85 22 78 32 Z" fill="#fff" stroke="#c9d8e6" stroke-width="2.5"/>' +
-           '<circle cx="60" cy="91" r="9.5" fill="#FFD24A" stroke="#c79a1f" stroke-width="2.5"/>' +
-           '<path d="M55.5 91 h9" stroke="#8a6d12" stroke-width="2.5" stroke-linecap="round"/>' +
-           '<circle cx="60" cy="95" r="2.2" fill="#8a6d12"/>'
+    /* 喜羊羊:白羊毛 + 浅蓝羊角 + 蓝色铃铛 */
+    xiyangyang: function () {
+      return sheepHead({
+        wool: '#ffffff',
+        horns: horns('#a8d8f5', '#6ba8d8'),
+        acc:
+          '<path d="M44 90 Q60 97 76 90" stroke="#4a90c8" stroke-width="4.5" fill="none"/>' +
+          '<circle cx="60" cy="98" r="11" fill="#5ba8e8" stroke="#3a7ab0" stroke-width="2.5"/>' +
+          '<path d="M54.5 98 h11" stroke="#2c5f85" stroke-width="3" stroke-linecap="round"/>' +
+          '<circle cx="60" cy="103.5" r="2.8" fill="#2c5f85"/>'
+      });
     },
-    meiyangyang: {
-      color: '#F38FC0',
-      eyes: EYES(dk('#F38FC0')) +
-        '<path d="M34 41 l-5 -4 M35 45 l-6 1" stroke="' + dk('#F38FC0') + '" stroke-width="2.5" stroke-linecap="round"/>' +
-        '<path d="M86 41 l5 -4 M85 45 l6 1" stroke="' + dk('#F38FC0') + '" stroke-width="2.5" stroke-linecap="round"/>',
-      acc: '<path d="M78 18 L62 6 L78 34 Z" fill="#E85D8C" stroke="#b03a62" stroke-width="2.5"/>' +
-           '<path d="M78 18 L94 6 L78 34 Z" fill="#E85D8C" stroke="#b03a62" stroke-width="2.5"/>' +
-           '<circle cx="78" cy="19" r="6.5" fill="#D24A78" stroke="#b03a62" stroke-width="2.5"/>'
+    /* 美羊羊:白羊毛 + 粉色大蝴蝶结 + 长睫毛 */
+    meiyangyang: function () {
+      return sheepHead({
+        wool: '#ffffff',
+        eyes: EYES + LASHES,
+        acc: BLUSH +
+          '<g transform="translate(88 24)">' +
+          '<path d="M0 0 Q-17 -15 -12 -31 Q4 -18 0 0 Z" fill="#f57fa8" stroke="#c8557e" stroke-width="2.5"/>' +
+          '<path d="M0 0 Q17 -15 12 -31 Q-4 -18 0 0 Z" fill="#f57fa8" stroke="#c8557e" stroke-width="2.5"/>' +
+          '<circle cx="0" cy="0" r="7" fill="#e0608e" stroke="#c8557e" stroke-width="2.5"/>' +
+          '</g>'
+      });
     },
-    lanyangyang: {
-      color: '#F5C843',
-      acc: '<circle cx="60" cy="16" r="11" fill="#F5C843" stroke="' + dk('#F5C843') + '" stroke-width="2.5"/>' +
-           '<circle cx="47" cy="22" r="9.5" fill="#F5C843" stroke="' + dk('#F5C843') + '" stroke-width="2.5"/>' +
-           '<circle cx="73" cy="22" r="9.5" fill="#F5C843" stroke="' + dk('#F5C843') + '" stroke-width="2.5"/>' +
-           '<circle cx="60" cy="26" r="10" fill="#fff8e8" stroke="' + dk('#F5C843') + '" stroke-width="2.5"/>' +
-           '<path d="M71 74 q7 9 1 16 q-3 -5 0 -16" fill="#8fd0f5"/>',
-      eyes: '<path d="M37 52 Q46 45 55 52" stroke="#7a5c10" stroke-width="4" fill="none" stroke-linecap="round"/>' +
-            '<path d="M65 52 Q74 45 83 52" stroke="#7a5c10" stroke-width="4" fill="none" stroke-linecap="round"/>'
+    /* 懒羊羊:白羊毛 + 黄色冰激凌卷发 + 睡眼 + 口水 + 围兜 */
+    lanyangyang: function () {
+      return sheepHead({
+        wool: '#ffffff',
+        acc:
+          '<circle cx="60" cy="26" r="13" fill="#f9d24a" stroke="#d9a92c" stroke-width="2.5"/>' +
+          '<circle cx="47" cy="32" r="11" fill="#f9d24a" stroke="#d9a92c" stroke-width="2.5"/>' +
+          '<circle cx="73" cy="32" r="11" fill="#f9d24a" stroke="#d9a92c" stroke-width="2.5"/>' +
+          '<circle cx="60" cy="36" r="12" fill="#fbe08a" stroke="#d9a92c" stroke-width="2.5"/>' +
+          '<path d="M72 78 q7 8 2 14 q-2.5 -4 0 -14" fill="#8fd0f5" stroke="#5ba8e0" stroke-width="1.5"/>' +
+          '<path d="M40 88 Q60 98 80 88 L80 98 Q60 108 40 98 Z" fill="#f9d24a" stroke="#d9a92c" stroke-width="2.5"/>',
+        eyes:
+          '<path d="M40 62 Q48 56 56 62" stroke="#4a3a2a" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+          '<path d="M64 62 Q72 56 80 62" stroke="#4a3a2a" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+      });
     },
-    feiyangyang: {
-      color: '#E2594C',
-      eyes: EYES(dk('#E2594C')) +
-        '<path d="M35 41 L56 47 M64 47 L85 41" stroke="#6e1a1a" stroke-width="4.5" stroke-linecap="round"/>',
-      mouth: '<path d="M50 71 Q60 82 70 71" stroke="' + dk('#E2594C') + '" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-      acc: '<path d="M30 40 Q60 30 90 40 L90 47 Q60 37 30 47 Z" fill="#a83232" stroke="#7c2020" stroke-width="2"/>' +
-           '<path d="M89 41 q13 0 10 11 l-8 3 q3 -9 -5 -13" fill="#a83232" stroke="#7c2020" stroke-width="2"/>'
+    /* 沸羊羊:枣红色羊毛 + 深色羊角 + 红色发带 + 浓眉 */
+    feiyangyang: function () {
+      return sheepHead({
+        wool: '#d97a58', woolEdge: '#b05a3c',
+        skin: '#f8e0d0', skinEdge: '#d8b898',
+        horns: horns('#8a5a3c', '#6a4028'),
+        eyes: EYES +
+          '<path d="M36 50 L56 57 M64 57 L84 50" stroke="#5a2c18" stroke-width="4.5" stroke-linecap="round"/>',
+        mouth: '<path d="M51 77 Q60 85 69 77" stroke="#6b3a20" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+        acc:
+          '<path d="M26 45 Q60 34 94 45 L94 53 Q60 42 26 53 Z" fill="#e23b3b" stroke="#b02a2a" stroke-width="2.5"/>' +
+          '<path d="M91 45 q17 -2 12 13 l-10 3 q5 -11 -7 -14" fill="#e23b3b" stroke="#b02a2a" stroke-width="2.5"/>'
+      });
     },
-    nuanyangyang: {
-      color: '#A678DB',
-      eyes: EYES(dk('#A678DB')),
-      acc: '<ellipse cx="33" cy="66" rx="7" ry="4.5" fill="#f0a8c4" opacity="0.85"/>' +
-           '<ellipse cx="87" cy="66" rx="7" ry="4.5" fill="#f0a8c4" opacity="0.85"/>' +
-           '<path d="M33 80 Q60 92 87 80 L87 92 Q60 104 33 92 Z" fill="#e05050" stroke="#a83232" stroke-width="2.5"/>' +
-           '<rect x="47" y="90" width="13" height="17" rx="6" fill="#e05050" stroke="#a83232" stroke-width="2"/>'
+    /* 暖羊羊:玫红羊毛 + 紫色羊角 + 蓝色围巾 */
+    nuanyangyang: function () {
+      return sheepHead({
+        wool: '#ef9ab0', woolEdge: '#d07a94',
+        skin: '#fff5f0', skinEdge: '#e8c8c0',
+        horns: horns('#c9a8e8', '#a07ac8'),
+        acc: BLUSH +
+          '<path d="M38 86 Q60 96 82 86 L82 96 Q60 106 38 96 Z" fill="#6db8f0" stroke="#4a90c8" stroke-width="2.5"/>' +
+          '<rect x="48" y="94" width="14" height="15" rx="7" fill="#6db8f0" stroke="#4a90c8" stroke-width="2.5"/>'
+      });
     },
-    jiaotailang: {
-      color: '#F08C3C',
-      behind: WOLF_EARS('#F08C3C', dk('#F08C3C'), '#f7b070'),
-      mouth: '<path d="M52 74 Q60 80 68 74" stroke="' + dk('#F08C3C') + '" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-      acc: '<path d="M51 74 l6 9 6 -9 z" fill="#fff" stroke="' + dk('#F08C3C') + '" stroke-width="1.5"/>' +
-           '<path d="M63 74 l6 9 6 -9 z" fill="#fff" stroke="' + dk('#F08C3C') + '" stroke-width="1.5"/>' +
-           '<path d="M91 60 Q106 48 100 77 Q88 83 91 60 Z" fill="#ffe066" stroke="#d9b62c" stroke-width="2.5"/>'
+    /* 蕉太狼:橙色狼 + 头顶香蕉 */
+    jiaotailang: function () {
+      return wolfHead({
+        fur: '#f0a04c', edge: '#b86a24', inner: '#f7c078', muzzle: '#f8e0c0',
+        eyes: EYES,
+        mouth: '<path d="M48 74 Q60 80 72 74" stroke="#6b4020" stroke-width="3" fill="none" stroke-linecap="round"/>' + FANGS,
+        acc: '<path d="M47 26 Q60 6 74 20 Q60 30 47 26 Z" fill="#ffe066" stroke="#d9b62c" stroke-width="2.5"/>' +
+          '<path d="M46 25 Q40 30 44 30" stroke="#b8860b" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+          '<path d="M75 20 Q81 22 78 27" stroke="#b8860b" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+      });
     },
-    xiaohuihui: {
-      color: '#AEB9C4',
-      behind: WOLF_EARS('#AEB9C4', dk('#AEB9C4'), '#cfd8e0'),
-      eyes: '<ellipse cx="45" cy="52" rx="10" ry="12" fill="#fff" stroke="' + dk('#AEB9C4') + '" stroke-width="2.5"/>' +
-            '<circle cx="46" cy="54" r="6" fill="#33251f"/>' +
-            '<path d="M46 50 l1.5 3.2 3.2 1.5 -3.2 1.5 -1.5 3.2 -1.5 -3.2 -3.2 -1.5 3.2 -1.5 z" fill="#fff"/>' +
-            '<ellipse cx="75" cy="52" rx="10" ry="12" fill="#fff" stroke="' + dk('#AEB9C4') + '" stroke-width="2.5"/>' +
-            '<circle cx="74" cy="54" r="6" fill="#33251f"/>' +
-            '<path d="M74 50 l1.5 3.2 3.2 1.5 -3.2 1.5 -1.5 3.2 -1.5 -3.2 -3.2 -1.5 3.2 -1.5 z" fill="#fff"/>',
-      mouth: '<path d="M53 74 Q60 79 67 74" stroke="' + dk('#AEB9C4') + '" stroke-width="3" fill="none" stroke-linecap="round"/>',
-      acc: '<path d="M57 74 l6 9 6 -9 z" fill="#fff" stroke="' + dk('#AEB9C4') + '" stroke-width="1.5"/>'
+    /* 小灰灰:浅灰小狼 + 星星眼 + 小獠牙 */
+    xiaohuihui: function () {
+      return wolfHead({
+        fur: '#b8c0c8', edge: '#7f8b96', inner: '#d8dde2', muzzle: '#f0f2f4',
+        eyes:
+          '<ellipse cx="46" cy="60" rx="9" ry="11" fill="#fff" stroke="#7f8b96" stroke-width="2"/>' +
+          '<circle cx="47" cy="62" r="5.5" fill="#2b2320"/>' +
+          '<path d="M47 58 l1.5 3 3 1.5 -3 1.5 -1.5 3 -1.5 -3 -3 -1.5 3 -1.5 z" fill="#fff"/>' +
+          '<ellipse cx="74" cy="60" rx="9" ry="11" fill="#fff" stroke="#7f8b96" stroke-width="2"/>' +
+          '<circle cx="73" cy="62" r="5.5" fill="#2b2320"/>' +
+          '<path d="M73 58 l1.5 3 3 1.5 -3 1.5 -1.5 3 -1.5 -3 -3 -1.5 3 -1.5 z" fill="#fff"/>',
+        mouth: '<path d="M54 73 Q60 77 66 73" stroke="#5a6670" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+          '<path d="M57 73 l5 7 5 -7 z" fill="#fff" stroke="#5a6670" stroke-width="1.5"/>',
+        acc: BLUSH
+      });
     },
-    manyangyang: {
-      color: '#74C465',
-      eyes: '<circle cx="45" cy="52" r="12.5" fill="rgba(255,255,255,0.35)" stroke="#4c5c2e" stroke-width="3"/>' +
-            '<circle cx="75" cy="52" r="12.5" fill="rgba(255,255,255,0.35)" stroke="#4c5c2e" stroke-width="3"/>' +
-            '<path d="M57.5 52 h5" stroke="#4c5c2e" stroke-width="3"/>' +
-            '<circle cx="45" cy="54" r="3.2" fill="#33251f"/><circle cx="75" cy="54" r="3.2" fill="#33251f"/>',
-      acc: '<path d="M60 8 Q70 0 77 9 Q67 14 60 8 Z" fill="#4f9c3e" stroke="#3a7a2c" stroke-width="2"/>' +
-           '<path d="M60 10 l0 6" stroke="#3a7a2c" stroke-width="2.5"/>' +
-           '<path d="M36 86 Q60 104 84 86 Q60 96 36 86 Z" fill="#fff" stroke="#d8d8d8" stroke-width="2"/>'
-    },
-    huitailang: {
-      color: '#7F8A94',
-      behind: WOLF_EARS('#7F8A94', dk('#7F8A94'), '#a8b2ba'),
-      eyes: EYES(dk('#7F8A94')) +
-        '<path d="M31 39 L52 46" stroke="#434b52" stroke-width="4.5" stroke-linecap="round"/>',
-      mouth: '<path d="M48 76 Q60 66 72 76" stroke="#3a4046" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-      acc: '<path d="M51 75 l6 9 6 -9 z" fill="#fff" stroke="#3a4046" stroke-width="1.5"/>' +
-           '<path d="M63 75 l6 9 6 -9 z" fill="#fff" stroke="#3a4046" stroke-width="1.5"/>'
-    },
-    hongtailang: {
-      color: '#D8596B',
-      behind: WOLF_EARS('#D8596B', dk('#D8596B'), '#ef9aa8'),
-      eyes: EYES(dk('#D8596B')) +
-        '<path d="M34 41 l-5 -4 M35 45 l-6 1" stroke="' + dk('#D8596B') + '" stroke-width="2.5" stroke-linecap="round"/>' +
-        '<path d="M86 41 l5 -4 M85 45 l6 1" stroke="' + dk('#D8596B') + '" stroke-width="2.5" stroke-linecap="round"/>',
-      mouth: '<path d="M53 76 Q60 82 67 76 Q60 88 53 76 Z" fill="#a82828"/>',
-      acc: '<path d="M42 22 L48 6 L58 15 L66 6 L72 15 L82 6 L86 24 L42 24 Z" fill="#ffd24a" stroke="#c79a1f" stroke-width="2.5"/>' +
-           '<ellipse cx="33" cy="66" rx="7" ry="4.5" fill="#f0a8c4" opacity="0.85"/><ellipse cx="87" cy="66" rx="7" ry="4.5" fill="#f0a8c4" opacity="0.85"/>'
+    /* 慢羊羊:米白羊毛 + 圆眼镜 + 白胡子 + 绿嫩芽 */
+    manyangyang: function () {
+      return sheepHead({
+        wool: '#f2efe8', woolEdge: '#d4cdbc',
+        skin: '#fffaf0', skinEdge: '#e0d4c0',
+        horns: horns('#cfc9bc', '#a8a090'),
+        eyes:
+          '<circle cx="46" cy="62" r="11.5" fill="rgba(255,255,255,0.55)" stroke="#4a4638" stroke-width="3"/>' +
+          '<circle cx="74" cy="62" r="11.5" fill="rgba(255,255,255,0.55)" stroke="#4a4638" stroke-width="3"/>' +
+          '<path d="M57.5 62 h5" stroke="#4a4638" stroke-width="3"/>' +
+          '<circle cx="46" cy="63.5" r="2.8" fill="#2b2320"/><circle cx="74" cy="63.5" r="2.8" fill="#2b2320"/>',
+        mouth: '<path d="M54 77 Q60 81 66 77" stroke="#6b5a48" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+        acc:
+          '<path d="M60 12 Q68 2 78 7 Q70 15 60 12 Z" fill="#6fbf5e" stroke="#4a8f3e" stroke-width="2"/>' +
+          '<path d="M60 12 Q53 3 47 8 Q55 15 60 12 Z" fill="#8fd47e" stroke="#4a8f3e" stroke-width="2"/>' +
+          '<path d="M60 13 l0 8" stroke="#4a8f3e" stroke-width="2.5"/>' +
+          '<path d="M38 82 Q48 95 60 95 Q72 95 82 82 Q72 90 60 90 Q48 90 38 82 Z" fill="#fff" stroke="#d4cdbc" stroke-width="2"/>'
+      });
     }
   };
 
+  /* ---- 狼族头像 ---- */
+  /* 灰太狼:刀疤 + 邪恶笑容 + 獠牙 */
+  function huitailangHead() {
+    return wolfHead({
+      fur: '#8d949c', edge: '#5f666e', inner: '#b8bec4', muzzle: '#d8dce0',
+      eyes:
+        '<ellipse cx="45" cy="58" rx="7" ry="8.5" fill="#fff" stroke="#5f666e" stroke-width="2"/>' +
+        '<circle cx="45" cy="60" r="3.5" fill="#2b2320"/>' +
+        '<ellipse cx="75" cy="58" rx="7" ry="8.5" fill="#fff" stroke="#5f666e" stroke-width="2"/>' +
+        '<circle cx="75" cy="60" r="3.5" fill="#2b2320"/>' +
+        '<path d="M32 45 L49 50 M35 40 L53 45 M29 50 L47 55" stroke="#3f464e" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<path d="M63 50 L82 43 M66 55 L85 48" stroke="#3f464e" stroke-width="3.5" stroke-linecap="round"/>',
+      mouth: '<path d="M46 76 Q60 66 74 76" stroke="#3a4046" stroke-width="3" fill="none" stroke-linecap="round"/>' + FANGS,
+      acc: '<path d="M46 22 Q43 8 53 15 Q50 23 46 22" fill="#8d949c" stroke="#5f666e" stroke-width="2.5"/>' +
+        '<path d="M74 22 Q77 8 67 15 Q70 23 74 22" fill="#8d949c" stroke="#5f666e" stroke-width="2.5"/>'
+    });
+  }
+
+  /* 红太狼:金色皇冠 + 睫毛 + 红唇 */
+  function hongtailangHead() {
+    return wolfHead({
+      fur: '#e05060', edge: '#a83042', inner: '#f090a0', muzzle: '#f8d8dc',
+      eyes:
+        '<ellipse cx="45" cy="58" rx="7" ry="8.5" fill="#fff" stroke="#a83042" stroke-width="2"/>' +
+        '<circle cx="45" cy="60" r="3.5" fill="#2b2320"/>' +
+        '<ellipse cx="75" cy="58" rx="7" ry="8.5" fill="#fff" stroke="#a83042" stroke-width="2"/>' +
+        '<circle cx="75" cy="60" r="3.5" fill="#2b2320"/>' + LASHES,
+      mouth: '<path d="M54 78 Q60 82 66 78 Q60 87 54 78 Z" fill="#c02838"/>',
+      acc: '<path d="M44 22 L48 3 L58 14 L66 3 L72 14 L82 3 L84 24 L44 24 Z" fill="#ffd24a" stroke="#c79a1f" stroke-width="2.5"/>' +
+        '<circle cx="52" cy="17" r="2.2" fill="#e23b3b"/><circle cx="66" cy="17" r="2.2" fill="#e23b3b"/><circle cx="78" cy="11" r="2.2" fill="#e23b3b"/>' +
+        '<ellipse cx="36" cy="72" rx="6" ry="4" fill="#ffb8c8" opacity="0.75"/><ellipse cx="84" cy="72" rx="6" ry="4" fill="#ffb8c8" opacity="0.75"/>'
+    });
+  }
+
+  /* ---- 特殊棋子图案 ---- */
   const GLYPHS = {
-    pan: '<circle cx="60" cy="66" r="33" fill="#5a5a68" stroke="#3c3c48" stroke-width="4"/>' +
+    pan: '<circle cx="60" cy="66" r="32" fill="#5a5a68" stroke="#3c3c48" stroke-width="4"/>' +
          '<path d="M38 54 Q47 46 58 48" stroke="#9c9caa" stroke-width="5" fill="none" stroke-linecap="round"/>' +
          '<path d="M50 62 L55 47 L61 57 L67 47 L70 62 Z" fill="#ffd24a" stroke="#c79a1f" stroke-width="1.5"/>' +
          '<rect x="88" y="40" width="34" height="13" rx="6.5" transform="rotate(42 88 40)" fill="#e85050" stroke="#a83030" stroke-width="3"/>',
@@ -166,43 +246,62 @@ window.YXXL = window.YXXL || {};
           '<path d="M76 17 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 z" fill="#ffe680"/>'
   };
 
-  function specialURL(color, type) {
-    return svgUrl(
-      '<circle cx="60" cy="60" r="54" fill="' + color + '" stroke="' + dk(color) + '" stroke-width="4"/>' +
-      GLYPHS[type]
-    );
-  }
-
   const CHAR_IDS = ['xiyangyang', 'meiyangyang', 'lanyangyang', 'feiyangyang', 'nuanyangyang', 'jiaotailang', 'xiaohuihui', 'manyangyang'];
+  /* 底板配色:[亮色, 暗色] */
+  const CHAR_TILES = {
+    xiyangyang: ['#8fd0f5', '#4a9edc'],
+    meiyangyang: ['#f9a8c8', '#d85c98'],
+    lanyangyang: ['#f7ce58', '#d9a82c'],
+    feiyangyang: ['#e88a62', '#b8512f'],
+    nuanyangyang: ['#f09ab0', '#cc5f86'],
+    jiaotailang: ['#f2a85c', '#c87028'],
+    xiaohuihui: ['#c2ccd4', '#8a9aa6'],
+    manyangyang: ['#9ad67e', '#5fae4a']
+  };
 
   const urlCache = {};
   const imgCache = {};
 
   N.Assets = {
     CHAR_IDS: CHAR_IDS,
-    colorOf: function (i) { return FACES[CHAR_IDS[i]].color; },
+    colorOf: function (i) { return CHAR_TILES[CHAR_IDS[i]][0]; },
+    /* 棋子版(带底板) */
     faceURL: function (i) {
       const key = CHAR_IDS[i];
-      if (!urlCache[key]) urlCache[key] = head(FACES[key].color, FACES[key].acc, FACES[key]);
+      if (!urlCache[key]) {
+        const c = CHAR_TILES[key];
+        urlCache[key] = tile(c[0], c[1], FACES[key]());
+      }
+      return urlCache[key];
+    },
+    /* 头像版(不带底板) */
+    headURL: function (i) {
+      const key = 'head_' + CHAR_IDS[i];
+      if (!urlCache[key]) urlCache[key] = svgUrl(FACES[CHAR_IDS[i]]());
       return urlCache[key];
     },
     wolfURL: function () {
-      if (!urlCache.wolf) urlCache.wolf = head(FACES.huitailang.color, FACES.huitailang.acc, FACES.huitailang);
+      if (!urlCache.wolf) urlCache.wolf = tile('#9aa2aa', '#666e76', huitailangHead());
       return urlCache.wolf;
     },
+    wolfHeadURL: function () {
+      if (!urlCache.wolfHead) urlCache.wolfHead = svgUrl(huitailangHead());
+      return urlCache.wolfHead;
+    },
     redwolfURL: function () {
-      if (!urlCache.redwolf) urlCache.redwolf = head(FACES.hongtailang.color, FACES.hongtailang.acc, FACES.hongtailang);
+      if (!urlCache.redwolf) urlCache.redwolf = svgUrl(hongtailangHead());
       return urlCache.redwolf;
     },
     specialURL: function (colorIdx, type) {
       const key = 'sp_' + colorIdx + '_' + type;
-      if (!urlCache[key]) urlCache[key] = specialURL(FACES[CHAR_IDS[colorIdx]].color, type);
+      if (!urlCache[key]) {
+        const c = CHAR_TILES[CHAR_IDS[colorIdx]];
+        urlCache[key] = tile(c[0], c[1], GLYPHS[type]);
+      }
       return urlCache[key];
     },
     cakeIngURL: function () {
-      if (!urlCache.cakeIng) urlCache.cakeIng = svgUrl(
-        '<circle cx="60" cy="60" r="54" fill="#f7e3c8" stroke="' + dk('#f7e3c8') + '" stroke-width="4"/>' + GLYPHS.cake
-      );
+      if (!urlCache.cakeIng) urlCache.cakeIng = tile('#f7e3c8', '#d9b98c', GLYPHS.cake);
       return urlCache.cakeIng;
     },
     iceURL: function () {
@@ -250,8 +349,11 @@ window.YXXL = window.YXXL || {};
     },
     preload: function () {
       const urls = [];
-      for (let i = 0; i < CHAR_IDS.length; i++) urls.push(this.faceURL(i));
-      urls.push(this.wolfURL(), this.redwolfURL(), this.cakeIngURL(), this.iceURL(), this.chainURL());
+      for (let i = 0; i < CHAR_IDS.length; i++) {
+        urls.push(this.faceURL(i));
+        urls.push(this.headURL(i));
+      }
+      urls.push(this.wolfURL(), this.wolfHeadURL(), this.redwolfURL(), this.cakeIngURL(), this.iceURL(), this.chainURL());
       for (let i = 0; i < CHAR_IDS.length; i++) {
         urls.push(this.specialURL(i, 'pan'), this.specialURL(i, 'cake'), this.specialURL(i, 'bomb'));
       }
