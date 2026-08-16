@@ -13,8 +13,8 @@ window.YXXL = window.YXXL || {};
   const trace = [];
   function tr(msg) {
     if (!window.__YXXL_TRACE) return;
-    trace.push(msg);
-    if (trace.length > 400) trace.shift();
+    trace.push({ t: performance.now(), msg: msg });
+    if (trace.length > 600) trace.shift();
   }
   N.__traceGet = function () { return trace.slice(); };
 
@@ -91,7 +91,7 @@ window.YXXL = window.YXXL || {};
   function killVisual(v) {
     v.dying = true;
     tr('KILL #' + v.tile.id + ' 位置' + Math.round(v.x) + ',' + Math.round(v.y) + ' 目标格中棋子#' + (session.board.grid[Math.round(v.y)] && session.board.grid[Math.round(v.y)][Math.round(v.x)] ? session.board.grid[Math.round(v.y)][Math.round(v.x)].id : 'null'));
-    tweenObj(v, { scale: 0.1, alpha: 0 }, 200, easeInQuad, function () {
+    tweenObj(v, { scale: 0.1, alpha: 0 }, 240, easeInQuad, function () {
       const i = session.visuals.indexOf(v);
       if (i >= 0) session.visuals.splice(i, 1);
     });
@@ -295,7 +295,7 @@ window.YXXL = window.YXXL || {};
   async function animateSwapTiles(a, b, dur) {
     const g = session.board.grid;
     const va = visualByTile(g[a.r][a.c]), vb = visualByTile(g[b.r][b.c]);
-    const d = dur || 260;
+    const d = dur || 300;
     const tasks = [];
     if (va) tasks.push(tweenObj(va, { x: b.c, y: b.r }, d, easeInOutQuad));
     if (vb) tasks.push(tweenObj(vb, { x: a.c, y: a.r }, d, easeInOutQuad));
@@ -318,10 +318,11 @@ window.YXXL = window.YXXL || {};
       const v = { tile: t, x: s.c, y: s.r, scale: 0.2, alpha: 1, dying: false };
       session.visuals.push(v);
       tr('  ADD特殊 格' + s.r + ',' + s.c + ' 新棋子#' + t.id);
-      tweenObj(v, { scale: 1 }, 220, easeOutBack);
-      addFlash([s.r, s.c], 'rgba(255,255,255,0.8)', 0.3);
+      tweenObj(v, { scale: 1 }, 320, easeOutBack);
+      floater(s.type === 'pan' ? '平底锅!' : s.type === 'cake' ? '青草蛋糕!' : '羊角爆竹!', s.r, s.c, '#fff');
+      addFlash([s.r, s.c], 'rgba(255,255,255,0.85)', 0.35);
     }
-    await delay(200);
+    await delay(260);
   }
 
   async function animateExplosion(ex) {
@@ -333,9 +334,9 @@ window.YXXL = window.YXXL || {};
       tr('  爆炸格' + cellPos[0] + ',' + cellPos[1] + ' → 视觉#' + v.tile.id);
       killVisual(v);
       burst(cellPos[0], cellPos[1], color, 12);
-      addFlash(cellPos, 'rgba(255,190,110,0.55)', 0.26);
+      addFlash(cellPos, 'rgba(255,190,110,0.55)', 0.3);
     }
-    await delay(230);
+    await delay(260);
   }
 
   async function animateGravity(ev) {
@@ -344,7 +345,7 @@ window.YXXL = window.YXXL || {};
       const v = visualByTile(f.tile);
       if (v) {
         tr('  FALL #' + f.tile.id + ' ' + f.from[0] + ',' + f.from[1] + '→' + f.to[0] + ',' + f.to[1]);
-        tweenObj(v, { x: f.to[1], y: f.to[0] }, 240, easeInQuad);
+        tweenObj(v, { x: f.to[1], y: f.to[0] }, 280, easeInQuad);
       } else {
         tr('  FALLMISS #' + f.tile.id + ' 无视觉');
       }
@@ -353,9 +354,9 @@ window.YXXL = window.YXXL || {};
       const v = { tile: f.tile, x: f.to[1], y: f.fromAbove ? -1.4 : f.to[0] - 1.6, scale: 1, alpha: 1, dying: false };
       session.visuals.push(v);
       tr('  ADDFILL 格' + f.to[0] + ',' + f.to[1] + ' 新棋子#' + f.tile.id);
-      tweenObj(v, { y: f.to[0] }, 240, easeInQuad);
+      tweenObj(v, { y: f.to[0] }, 280, easeInQuad);
     }
-    await delay(260);
+    await delay(300);
   }
 
   async function animateCollect(got) {
@@ -363,7 +364,7 @@ window.YXXL = window.YXXL || {};
       const v = visualAt(g.r, g.c);
       if (v) {
         v.dying = true;
-        tweenObj(v, { y: ROWS + 0.8, alpha: 0.2 }, 320, easeInQuad, function () {
+        tweenObj(v, { y: ROWS + 0.8, alpha: 0.2 }, 360, easeInQuad, function () {
           const i = session.visuals.indexOf(v);
           if (i >= 0) session.visuals.splice(i, 1);
         });
@@ -371,7 +372,7 @@ window.YXXL = window.YXXL || {};
       sparkle(g.r, g.c, '#ffd24a', 10);
       addFlash([g.r, g.c], 'rgba(255,210,90,0.6)', 0.35);
     }
-    await delay(330);
+    await delay(380);
   }
 
   /* ---- 连消主循环 ---- */
@@ -443,7 +444,7 @@ window.YXXL = window.YXXL || {};
     if (ev.falls.length || ev.fills.length) {
       await animateGravity(ev);
       /* 停顿一拍,让玩家看清掉落后再进行下一轮连消 */
-      await delay(120);
+      await delay(160);
     }
   }
 
@@ -465,13 +466,15 @@ window.YXXL = window.YXXL || {};
     session.selected = null;
     session.hint = null;
     const ta = session.board.grid[a.r][a.c], tb = session.board.grid[b.r][b.c];
+    tr('SWAPSTART');
     swapModel(a, b);
     await animateSwapTiles(a, b);
+    tr('SWAPEND');
     if (ta.special || tb.special) {
       session.moves--;
       finishTutorial();
       N.Audio.sfx.special();
-      await delay(170);
+      await delay(220);
       const ex = Board.resolveExplosions(session.board, specialSwapSeeds(a, b));
       addScore(ex.destroyed.length * 10 + ex.triggered.length * 60);
       if (ex.iceBroken) { addScore(ex.iceBroken * 20); N.Audio.sfx.ice(); }
@@ -487,7 +490,8 @@ window.YXXL = window.YXXL || {};
       finishTutorial();
       N.Audio.sfx.swap();
       updateHUD();
-      await delay(170);
+      tr('MATCHWAIT');
+      await delay(220);
       await resolveCascades();
     } else {
       N.Audio.sfx.invalid();

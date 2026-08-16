@@ -168,7 +168,7 @@
           log('视觉棋盘:\n' + vm.map(function (r) { return r.join(' '); }).join('\n'));
           if (window.__YXXL_TRACE && N.__traceGet) {
             log('---- 视觉追踪(最后' + N.__traceGet().length + '条) ----');
-            log(N.__traceGet().join('\n'));
+            log(N.__traceGet().map(function (m) { return Math.round(m.t) + ' ' + m.msg; }).join('\n'));
             log('---- 追踪结束 ----');
           }
           log('--- 检测到异常,终止本局 ---');
@@ -189,6 +189,17 @@
     log(label + ' 对局结束: 胜利=' + s.win + ', 分数=' + s.score + ', 剩余步=' + s.moves + extra + ', 最长动画' + maxAnim + 'ms');
     log(label + ' 终局棋盘一致性: ' + (p2.length ? p2.join(', ') : '完美无空洞无错位'), p2.length === 0);
     log(label + ' 本局新增页面错误: ' + (errors.length - errBefore), errors.length === errBefore);
+    /* 交换动画时序校验:每次交换的滑行时长必须 ≥ 250ms(先交换,再消除) */
+    var trList = N.__traceGet();
+    var lastStart = -1, seqBad = 0;
+    for (var ti = 0; ti < trList.length; ti++) {
+      if (trList[ti].msg === 'SWAPSTART') lastStart = trList[ti].t;
+      else if (trList[ti].msg === 'SWAPEND' && lastStart >= 0) {
+        if (trList[ti].t - lastStart < 250) seqBad++;
+        lastStart = -1;
+      }
+    }
+    log(label + ' 交换动画时序(先滑行交换再消除,滑行≥250ms): ' + (seqBad ? seqBad + ' 次过快' : '全部合格'), seqBad === 0);
   }
 
   async function run() {
