@@ -1,0 +1,34 @@
+{
+  "name": "yangcun-xiaoxiaole",
+  "productName": "羊村消消乐",
+  "version": "1.0.0",
+  "description": "羊村消消乐 - 喜羊羊与灰太狼主题三消游戏(原创同人)",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "test": "node test/engine.test.js && node test/smart-bot.test.js"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yangcun.xiaoxiaole",
+    "productName": "羊村消消乐",
+    "directories": { "output": "release" },
+    "files": [
+      "electron/main.js",
+      "index.html",
+      "css/**/*",
+      "js/**/*"
+    ],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "羊村消消乐-${version}-portable.exe"
+    }
+  }
+}
