@@ -16,7 +16,9 @@
   "build": {
     "appId": "com.yangcun.xiaoxiaole",
     "productName": "羊村消消乐",
-    "directories": { "output": "release" },
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "electron/main.js",
       "index.html",
@@ -24,11 +26,23 @@
       "js/**/*"
     ],
     "win": {
-      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "signAndEditExecutable": false
     },
     "portable": {
       "artifactName": "羊村消消乐-${version}-portable.exe"
     }
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.8",
+    "@capacitor/cli": "^7.6.8",
+    "@capacitor/core": "^7.6.8"
   }
 }
