@@ -193,6 +193,16 @@ window.YXXL = window.YXXL || {};
     const bar = document.getElementById('booster-bar');
     const s = session;
     bar.innerHTML = '';
+    const tip = document.getElementById('booster-mode-tip');
+    const activeInfo = s.activeBooster ? N.Store.BOOSTERS.find(function (b) { return b.key === s.activeBooster; }) : null;
+    if (tip) {
+      if (activeInfo) {
+        tip.style.display = 'block';
+        tip.textContent = '👆 点击棋盘格子使用「' + activeInfo.name + '」' + (s.activeBooster === 'pan' ? '(清除一整行)' : s.activeBooster === 'cake' ? '(消除同色)' : s.activeBooster === 'bomb' ? '(3×3 爆炸)' : '(敲碎目标)') + ',再点一次道具按钮取消';
+      } else {
+        tip.style.display = 'none';
+      }
+    }
     N.Store.BOOSTERS.forEach(function (b) {
       const count = s.boosters[b.key] || 0;
       const btn = document.createElement('button');
@@ -245,12 +255,12 @@ window.YXXL = window.YXXL || {};
   }
 
   /* ---- 动画序列 ---- */
-  async function animateSwapTiles(a, b) {
+  async function animateSwapTiles(a, b, dur) {
     const g = session.board.grid;
     const va = visualByTile(g[a.r][a.c]), vb = visualByTile(g[b.r][b.c]);
     const tasks = [];
-    if (va) tasks.push(tweenObj(va, { x: b.c, y: b.r }, 150));
-    if (vb) tasks.push(tweenObj(vb, { x: a.c, y: a.r }, 150));
+    if (va) tasks.push(tweenObj(va, { x: b.c, y: b.r }, dur || 230, easeOutQuad));
+    if (vb) tasks.push(tweenObj(vb, { x: a.c, y: a.r }, dur || 230, easeOutQuad));
     await Promise.all(tasks);
   }
 
@@ -351,7 +361,11 @@ window.YXXL = window.YXXL || {};
         await animateExplosion(ex);
       }
       const ev = Board.gravityAndFill(session.board);
-      if (ev.falls.length || ev.fills.length) await animateGravity(ev);
+      if (ev.falls.length || ev.fills.length) {
+        await animateGravity(ev);
+        /* 停顿一拍,让玩家看清掉落后再进行下一轮连消 */
+        await delay(120);
+      }
       updateHUD();
       if (isWin()) { endGame(true); return; }
       if (session.moves <= 0) { endGame(false); return; }
@@ -401,6 +415,7 @@ window.YXXL = window.YXXL || {};
       session.moves--;
       finishTutorial();
       N.Audio.sfx.special();
+      await delay(170);
       const ex = Board.resolveExplosions(session.board, specialSwapSeeds(a, b));
       addScore(ex.destroyed.length * 10 + ex.triggered.length * 60);
       if (ex.iceBroken) { addScore(ex.iceBroken * 20); N.Audio.sfx.ice(); }
@@ -416,11 +431,12 @@ window.YXXL = window.YXXL || {};
       finishTutorial();
       N.Audio.sfx.swap();
       updateHUD();
+      await delay(170);
       await resolveCascades();
     } else {
       N.Audio.sfx.invalid();
       swapModel(a, b);
-      await animateSwapTiles(a, b);
+      await animateSwapTiles(a, b, 200);
       session.state = 'idle';
     }
   }

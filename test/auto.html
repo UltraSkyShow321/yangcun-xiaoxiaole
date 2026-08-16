@@ -53,6 +53,7 @@
       <div class="hud-score"><span id="hud-score">0</span><i>分</i></div>
     </header>
     <div class="obj-tip" id="obj-tip" style="display:none"></div>
+    <div class="booster-mode-tip" id="booster-mode-tip" style="display:none"></div>
     <div class="tutorial-tip" id="tutorial-tip" style="display:none">
       <span>👆 先点一个棋子选中,再点相邻棋子交换;三个相同连成一线就消除!</span>
       <button class="btn btn-small" id="tutorial-skip">跳过</button>
@@ -113,6 +114,7 @@
       <h2 id="prelevel-title">关卡</h2>
       <p class="prelevel-desc" id="prelevel-desc"></p>
       <p class="prelevel-meta" id="prelevel-meta"></p>
+      <div class="equip-status" id="equip-status"></div>
       <div class="prelevel-boosters" id="prelevel-boosters"></div>
       <div class="prelevel-btns">
         <button class="btn" id="btn-prelevel-back">返回</button>
@@ -143,7 +145,7 @@
 (function () {
   var N = window.YXXL;
   var logEl = document.getElementById('log-overlay');
-  var lines = [];
+  var lines = ['⚠️ 这是自动化测试页,不是游戏!玩游戏请打开 http://localhost:8600/', '']; 
   var pass = 0, fail = 0;
   function log(msg, ok) {
     lines.push((ok === false ? '❌ ' : (ok === true ? '✅ ' : '· ')) + msg);

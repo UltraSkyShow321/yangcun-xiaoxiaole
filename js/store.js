@@ -18,10 +18,11 @@ window.YXXL = window.YXXL || {};
       stars: {},
       seenIntro: {},
       tutorialDone: false,
+      musicPrefSet: false,
       bells: 120,
       boosters: { hammer: 3, shuffle: 2, moves5: 2, pan: 1, cake: 1, bomb: 1 },
       endlessBest: 0,
-      settings: { music: true, sfx: true }
+      settings: { music: false, sfx: true }
     };
   }
 
@@ -38,6 +39,13 @@ window.YXXL = window.YXXL || {};
     const d = defaults();
     for (const k in d) if (!(k in save)) save[k] = d[k];
     for (const k in d.boosters) if (!(k in save.boosters)) save.boosters[k] = 0;
+    for (const k in d.settings) if (!(k in save.settings)) save.settings[k] = d.settings[k];
+    // 迁移:老存档默认开启的背景音乐改为关闭(后续在设置里可手动开启)
+    if (!save.musicPrefSet) {
+      save.settings.music = false;
+      save.musicPrefSet = true;
+      persist();
+    }
     return save;
   }
 

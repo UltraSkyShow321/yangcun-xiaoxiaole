@@ -135,20 +135,39 @@ window.YXXL = window.YXXL || {};
     $('prelevel-meta').textContent = '步数:' + cfg.moves + ' 步' + (cfg.isBoss ? ' · BOSS 关' : '') + (mode === 'endless' ? ' · 历史最高 ' + N.Store.get().endlessBest + ' 分' : '');
     const box = $('prelevel-boosters');
     box.innerHTML = '';
+    const status = $('equip-status');
+    if (status) {
+      const total = Object.keys(equipped).reduce(function (sum, k) { return sum + equipped[k]; }, 0);
+      status.textContent = total > 0
+        ? '已携带 ' + total + ' / 3 个道具(开局后在游戏底部道具栏使用)'
+        : '点击下方道具携带入场,最多 3 个(开局后在游戏底部道具栏使用)';
+      status.classList.toggle('has', total > 0);
+    }
     N.Store.BOOSTERS.forEach(function (b) {
       const owned = N.Store.boosterCount(b.key);
+      const eq = equipped[b.key] || 0;
       const card = document.createElement('div');
-      card.className = 'equip-card' + (equipped[b.key] ? ' equipped' : '');
-      card.innerHTML = '<img src="' + N.Assets.boosterIconURL(b.key) + '" alt=""><div class="equip-name">' + b.name + '</div>' +
-        '<div class="equip-count">持有 ' + owned + (equipped[b.key] ? ' · 已带 ' + equipped[b.key] : '') + '</div>';
+      card.className = 'equip-card' + (eq ? ' equipped' : '');
+      card.innerHTML = '<img src="' + N.Assets.boosterIconURL(b.key) + '" alt="">' +
+        (eq ? '<span class="equip-check">✓' + eq + '</span>' : '') +
+        '<div class="equip-name">' + b.name + '</div>' +
+        '<div class="equip-count">持有 ' + owned + '</div>';
       card.addEventListener('click', function () {
+        if (equipped[b.key] > 0) {
+          /* 再点一次取消携带 */
+          N.Audio.sfx.click();
+          equipped[b.key]--;
+          showPrelevel(cfg, mode);
+          return;
+        }
         const total = Object.keys(equipped).reduce(function (s, k) { return s + equipped[k]; }, 0);
-        if (equipped[b.key] >= owned) { N.UI.toast('没有更多了'); return; }
+        if (equipped[b.key] >= owned) { N.UI.toast('没有更多了,去羊村商店购买吧'); return; }
         if (total >= 3) { N.UI.toast('最多携带 3 个道具'); return; }
         N.Audio.sfx.click();
         equipped[b.key] = (equipped[b.key] || 0) + 1;
         showPrelevel(cfg, mode);
       });
+      card.addEventListener('contextmenu', function (e) { e.preventDefault(); });
       box.appendChild(card);
     });
     $('btn-start-level').onclick = function () {

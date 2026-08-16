@@ -305,19 +305,46 @@ body {
 .prelevel-panel { text-align: center; max-width: 400px; }
 .prelevel-panel h2 { font-size: 24px; margin-bottom: 8px; color: #3d2f1e; }
 .prelevel-desc { font-size: 15px; margin-bottom: 4px; color: #4a3520; }
-.prelevel-meta { font-size: 13px; color: #8a7a5e; margin-bottom: 14px; }
-.prelevel-tip { font-size: 12px; color: #8a7a5e; margin-bottom: 10px; }
+.prelevel-meta { font-size: 13px; color: #8a7a5e; margin-bottom: 10px; }
+.equip-status {
+  font-size: 13px; color: #8a7a5e; margin-bottom: 10px;
+  background: #f6efe2; border-radius: 10px; padding: 6px 10px;
+}
+.equip-status.has { color: #b8860b; background: #fff3d8; font-weight: bold; }
 .prelevel-boosters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .equip-card {
+  position: relative;
   background: #f6efe2; border: 2px solid transparent; border-radius: 12px;
   padding: 8px 4px; cursor: pointer; text-align: center;
+  transition: transform .1s;
 }
 .equip-card img { width: 44px; height: 44px; }
-.equip-card.equipped { border-color: #ff9d3c; background: #fff3d8; }
+.equip-card.equipped {
+  border-color: #ff9d3c; background: #fff3d8;
+  box-shadow: 0 0 0 3px rgba(255,157,60,0.35);
+  transform: scale(1.04);
+}
+.equip-check {
+  position: absolute; top: -8px; right: -8px;
+  background: #7ed957; color: #fff; font-weight: bold; font-size: 13px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+}
 .equip-name { font-size: 12px; font-weight: bold; margin-top: 2px; }
 .equip-count { font-size: 10px; color: #8a7a5e; }
 .prelevel-btns { display: flex; gap: 10px; }
 .prelevel-btns .btn { flex: 1; margin-bottom: 0; }
+/* 道具使用提示条 */
+.booster-mode-tip {
+  margin: 0 10px 8px;
+  background: #ffe9d0; border: 2px solid #ff9d3c;
+  border-radius: 12px; padding: 7px 12px;
+  font-size: 13.5px; color: #7a4a10; text-align: center; font-weight: bold;
+  animation: blinkLow 1.2s infinite;
+}
+.boost-btn.active { border-color: #ff9d3c; background: #fff3d8; animation: boostPulse 0.9s infinite; }
+@keyframes boostPulse { 50% { box-shadow: 0 0 0 5px rgba(255,157,60,0.45); } }
 
 /* ---- 暂停 ---- */
 .pause-panel { text-align: center; }
