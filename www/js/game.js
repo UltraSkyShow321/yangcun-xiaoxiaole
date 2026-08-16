@@ -58,6 +58,14 @@ window.YXXL = window.YXXL || {};
     return A.img(A.faceURL(tile.c));
   }
 
+  /* 新手引导完成(首次成功交换后) */
+  function finishTutorial() {
+    if (!session.tutorial) return;
+    session.tutorial = null;
+    N.Store.markTutorialDone();
+    N.UI.hideTutorialTip();
+  }
+
   /* ---- 视觉对象 ---- */
   function visualByTile(tile) {
     if (!session) return null;
@@ -162,6 +170,21 @@ window.YXXL = window.YXXL || {};
         '<div class="obj-bar"><div class="obj-fill" style="width:' + pct + '%"></div></div>';
     } else {
       obj.innerHTML = '<div class="obj-row">无尽模式 · 冲击高分</div>';
+    }
+    /* 目标玩法提示条 */
+    const tip = el('obj-tip');
+    if (tip) {
+      if (o.type === 'collect' && s.board.collected < o.target) {
+        tip.style.display = 'block';
+        tip.textContent = o.item === 'wolf'
+          ? '💡 消除灰太狼下方的棋子,让它掉落到棋盘底部出口!'
+          : '💡 消除蛋糕下方的棋子,让它掉落到棋盘底部出口!';
+      } else if (o.type === 'jelly' && Board.jellyTotal(s.board) > 0) {
+        tip.style.display = 'block';
+        tip.textContent = '💡 消除覆盖果冻的棋子,清完所有果冻过关!';
+      } else {
+        tip.style.display = 'none';
+      }
     }
     renderBoosterBar();
   }
@@ -376,6 +399,7 @@ window.YXXL = window.YXXL || {};
     await animateSwapTiles(a, b);
     if (ta.special || tb.special) {
       session.moves--;
+      finishTutorial();
       N.Audio.sfx.special();
       const ex = Board.resolveExplosions(session.board, specialSwapSeeds(a, b));
       addScore(ex.destroyed.length * 10 + ex.triggered.length * 60);
@@ -389,6 +413,7 @@ window.YXXL = window.YXXL || {};
     }
     if (Board.matchAt(session.board, a.r, a.c) || Board.matchAt(session.board, b.r, b.c)) {
       session.moves--;
+      finishTutorial();
       N.Audio.sfx.swap();
       updateHUD();
       await resolveCascades();
@@ -599,10 +624,40 @@ window.YXXL = window.YXXL || {};
       const pulse = 0.6 + 0.4 * Math.sin(now / 200);
       drawCellOutline(session.selected.r, session.selected.c, 'rgba(255,255,255,' + pulse.toFixed(3) + ')', 4);
     }
-    if (session.hint && !session.activeBooster) {
+    if (session.hint && !session.activeBooster && !session.tutorial) {
       const pulse = 0.35 + 0.3 * Math.sin(now / 240);
       drawCellOutline(session.hint[0].r, session.hint[0].c, 'rgba(255,230,80,' + pulse.toFixed(3) + ')', 3);
       drawCellOutline(session.hint[1].r, session.hint[1].c, 'rgba(255,230,80,' + pulse.toFixed(3) + ')', 3);
+    }
+    /* 新手引导箭头 */
+    if (session.tutorial && session.tutorial.cells && session.state === 'idle') {
+      const a = session.tutorial.cells[0], b = session.tutorial.cells[1];
+      const pulse = 0.55 + 0.4 * Math.sin(now / 220);
+      drawCellOutline(a.r, a.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4);
+      drawCellOutline(b.r, b.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4);
+      const x1 = (a.c + 0.5) * cell, y1 = (a.r + 0.5) * cell;
+      const x2 = (b.c + 0.5) * cell, y2 = (b.r + 0.5) * cell;
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const sx = x1 + ux * cell * 0.45, sy = y1 + uy * cell * 0.45;
+      const ex = x2 - ux * cell * 0.45, ey = y2 - uy * cell * 0.45;
+      ctx.strokeStyle = 'rgba(255,235,120,' + pulse.toFixed(3) + ')';
+      ctx.lineWidth = Math.max(4, cell * 0.09);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      const ah = cell * 0.18;
+      const ang = Math.atan2(uy, ux);
+      ctx.fillStyle = 'rgba(255,235,120,' + pulse.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - ah * Math.cos(ang - 0.45), ey - ah * Math.sin(ang - 0.45));
+      ctx.lineTo(ex - ah * Math.cos(ang + 0.45), ey - ah * Math.sin(ang + 0.45));
+      ctx.closePath();
+      ctx.fill();
     }
     if (session.activeBooster && session.hoverCell) {
       drawCellOutline(session.hoverCell.r, session.hoverCell.c, 'rgba(255,120,80,0.9)', 3);
@@ -679,9 +734,19 @@ window.YXXL = window.YXXL || {};
     const now = performance.now();
     updateTweens(now);
     if (session && session.state !== 'over') {
-      if (session.state === 'idle' && session.mode === 'level' && !session.activeBooster) {
-        if (performance.now() - session.lastInput > 6000) {
-          if (!session.hint) session.hint = Board.findPossibleMove(session.board);
+      if (session.state === 'idle' && !session.activeBooster) {
+        if (session.tutorial) {
+          /* 引导期间持续刷新建议步 */
+          session.tutorial.timer += 33;
+          if (session.tutorial.timer > 1500) {
+            session.tutorial.timer = 0;
+            const mv = Board.findPossibleMove(session.board);
+            if (mv) session.tutorial.cells = mv;
+          }
+        } else if (session.mode === 'level') {
+          if (performance.now() - session.lastInput > 3500) {
+            if (!session.hint) session.hint = Board.findPossibleMove(session.board);
+          }
         }
       }
       draw(now);
@@ -734,6 +799,13 @@ window.YXXL = window.YXXL || {};
       Board.generate(session.board);
       rebuildVisuals();
       resize();
+      /* 新手引导:第 1 关首次进入时提示如何交换 */
+      session.tutorial = null;
+      if (mode === 'level' && cfg.id === 1 && !N.Store.tutorialDone()) {
+        const mv0 = Board.findPossibleMove(session.board);
+        session.tutorial = { cells: mv0, timer: 0 };
+        N.UI.showTutorialTip();
+      }
       updateHUD();
       N.Audio.startMusic(cfg.isBoss ? 'boss' : (cfg.chapter >= 5 ? 'boss' : 'normal'));
       N.Game.setPaused(false);

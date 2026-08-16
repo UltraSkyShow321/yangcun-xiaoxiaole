@@ -17,6 +17,7 @@ window.YXXL = window.YXXL || {};
       unlocked: 1,
       stars: {},
       seenIntro: {},
+      tutorialDone: false,
       bells: 120,
       boosters: { hammer: 3, shuffle: 2, moves5: 2, pan: 1, cake: 1, bomb: 1 },
       endlessBest: 0,
@@ -86,6 +87,8 @@ window.YXXL = window.YXXL || {};
     },
     introSeen: function (id) { return !!save.seenIntro[id]; },
     markIntroSeen: function (id) { save.seenIntro[id] = true; persist(); },
+    tutorialDone: function () { return !!save.tutorialDone; },
+    markTutorialDone: function () { save.tutorialDone = true; persist(); },
     settings: function () { return save.settings; },
     saveSettings: function (s) { save.settings = s; persist(); }
   };

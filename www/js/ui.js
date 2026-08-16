@@ -402,6 +402,53 @@ window.YXXL = window.YXXL || {};
     setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2000);
   }
 
+  /* ---- 新手引导提示条 ---- */
+  function showTutorialTip() {
+    const tip = $('tutorial-tip');
+    if (tip) tip.style.display = 'flex';
+  }
+  function hideTutorialTip() {
+    const tip = $('tutorial-tip');
+    if (tip) tip.style.display = 'none';
+  }
+  function skipTutorial() {
+    hideTutorialTip();
+    N.Store.markTutorialDone();
+    const s = N.Game.getSession();
+    if (s) s.tutorial = null;
+  }
+
+  /* ---- 玩法说明 ---- */
+  function buildHelp() {
+    const A = N.Assets;
+    const names = ['喜羊羊', '美羊羊', '懒羊羊', '沸羊羊', '暖羊羊', '蕉太狼', '小灰灰', '慢羊羊'];
+    const rows = [];
+    function sec(title, html) {
+      return '<div class="help-sec"><h3>' + title + '</h3>' + html + '</div>';
+    }
+    let faces = '';
+    for (let i = 0; i < names.length; i++) {
+      faces += '<div class="help-item"><img src="' + A.faceURL(i) + '"><span>' + names[i] + '</span></div>';
+    }
+    rows.push(sec('① 基本玩法', '<p>先点击一个棋子选中,再点击它相邻的棋子交换位置。三个及以上相同的棋子连成一线就会消除得分,上方棋子掉落补齐,连续消除有"连击"加成!</p>' + faces));
+    rows.push(sec('② 特殊棋子(大消除)', '<div class="help-item"><img src="' + A.specialURL(0, 'pan') + '"><span>4 个连成一线 → 平底锅:清除整行/整列</span></div>' +
+      '<div class="help-item"><img src="' + A.specialURL(0, 'cake') + '"><span>5 个连成一线 → 青草蛋糕:消除全场同色</span></div>' +
+      '<div class="help-item"><img src="' + A.specialURL(0, 'bomb') + '"><span>L/T 形交叉 → 羊角爆竹:3×3 爆炸</span></div>' +
+      '<p>特殊棋子可以和任意棋子交换触发,两个特殊棋子交换还有组合大招!</p>'));
+    rows.push(sec('③ 三种关卡目标', '<div class="help-item"><span class="help-big">🎯</span><span>分数关:步数内达到目标分</span></div>' +
+      '<div class="help-item"><img src="' + A.wolfURL() + '"><span>收集关:消除灰太狼/蛋糕下方的棋子,让它掉落到棋盘底部出口</span></div>' +
+      '<div class="help-item"><span class="help-big">🍮</span><span>果冻关:消除覆盖果冻的棋子,清完所有果冻</span></div>'));
+    rows.push(sec('④ 障碍', '<div class="help-item"><img src="' + A.iceURL() + '"><span>冰层:被冻住的棋子要消除两次才能打碎</span></div>' +
+      '<div class="help-item"><img src="' + A.chainURL() + '"><span>锁链:被锁住的棋子不能随便移动,只有交换后能形成消除才行</span></div>'));
+    let boost = '';
+    N.Store.BOOSTERS.forEach(function (b) {
+      boost += '<div class="help-item"><img src="' + A.boosterIconURL(b.key) + '"><span><b>' + b.name + '</b>:' + b.desc + '</span></div>';
+    });
+    rows.push(sec('⑤ 道具(关卡开始前可携带 3 个)', boost));
+    rows.push('<div class="help-tip">过关获得铃铛,可在羊村商店购买更多道具;卡住时等 3 秒,棋盘上会出现黄色箭头提示!</div>');
+    $('help-content').innerHTML = rows.join('');
+  }
+
   N.UI = {
     init: function () {
       initMenu();
@@ -415,6 +462,19 @@ window.YXXL = window.YXXL || {};
         N.Audio.sfx.click();
         showScreen('screen-menu');
       });
+      $('btn-help').addEventListener('click', function () {
+        N.Audio.sfx.click();
+        buildHelp();
+        showScreen('screen-help');
+      });
+      $('btn-help-back').addEventListener('click', function () {
+        N.Audio.sfx.click();
+        showScreen('screen-menu');
+      });
+      $('tutorial-skip').addEventListener('click', function () {
+        N.Audio.sfx.click();
+        skipTutorial();
+      });
       updateBells();
     },
     showScreen: showScreen,
@@ -425,6 +485,8 @@ window.YXXL = window.YXXL || {};
     showPrelevel: showPrelevel,
     showResult: showResult,
     showStory: showStory,
+    showTutorialTip: showTutorialTip,
+    hideTutorialTip: hideTutorialTip,
     toast: toast,
     CHAR_NAMES: CHAR_NAMES,
     avatarURL: avatarURL
