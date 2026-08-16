@@ -7,11 +7,13 @@
 <link rel="stylesheet" href="../css/style.css">
 <style>
   #log-overlay {
-    position: fixed; left: 0; top: 0; width: 46vw; height: 100vh; z-index: 9999;
+    position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 9999;
     background: rgba(20,26,36,0.94); color: #d8e0ea; padding: 14px; overflow: auto;
     font-size: 13px; line-height: 1.75; white-space: pre-wrap; font-family: Consolas, monospace;
   }
-  #app { margin-left: 46vw; }
+  /* 游戏界面移到屏幕外,避免与自动测试互相干扰、误导误点 */
+  #app { position: fixed; left: -9999px; top: 0; width: 420px; height: 800px; }
+  #app .screen.overlay { position: absolute; }
 </style>
 </head>
 <body>

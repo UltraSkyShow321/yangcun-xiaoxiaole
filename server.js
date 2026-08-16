@@ -9,7 +9,7 @@ http.createServer((req, res) => {
   const file = path.join(root, p);
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('404'); return; }
-    res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(data);
   });
 }).listen(8600, () => console.log('server on http://localhost:8600'));

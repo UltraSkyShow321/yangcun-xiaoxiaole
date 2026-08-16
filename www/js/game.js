@@ -9,6 +9,14 @@ window.YXXL = window.YXXL || {};
   let rafId = null, lastT = 0;
   const tweens = [], particles = [], floaters = [], flashes = [];
   let flashId = 0;
+  /* 调试追踪(自测用):记录视觉对象的创建/移动/销毁 */
+  const trace = [];
+  function tr(msg) {
+    if (!window.__YXXL_TRACE) return;
+    trace.push(msg);
+    if (trace.length > 400) trace.shift();
+  }
+  N.__traceGet = function () { return trace.slice(); };
 
   const delay = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
 
@@ -81,6 +89,7 @@ window.YXXL = window.YXXL || {};
   }
   function killVisual(v) {
     v.dying = true;
+    tr('KILL #' + v.tile.id + ' 位置' + Math.round(v.x) + ',' + Math.round(v.y) + ' 目标格中棋子#' + (session.board.grid[Math.round(v.y)] && session.board.grid[Math.round(v.y)][Math.round(v.x)] ? session.board.grid[Math.round(v.y)][Math.round(v.x)].id : 'null'));
     tweenObj(v, { scale: 0.1, alpha: 0 }, 200, easeInQuad, function () {
       const i = session.visuals.indexOf(v);
       if (i >= 0) session.visuals.splice(i, 1);
@@ -91,6 +100,33 @@ window.YXXL = window.YXXL || {};
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       const t = session.board.grid[r][c];
       if (t) session.visuals.push({ tile: t, x: c, y: r, scale: 1, alpha: 1, dying: false });
+    }
+  }
+
+  /* 视觉对账:以棋盘模型为准,清除多余视觉、补齐缺失视觉、对齐位置 */
+  function reconcileVisuals() {
+    if (!session || !session.board) return;
+    const g = session.board.grid;
+    const gridTiles = new Set();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      if (g[r][c]) gridTiles.add(g[r][c]);
+    }
+    session.visuals = session.visuals.filter(function (v) { return gridTiles.has(v.tile); });
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const t = g[r][c];
+      if (!t) continue;
+      let v = null;
+      for (const vv of session.visuals) {
+        if (vv.tile === t && !vv.dying) { v = vv; break; }
+      }
+      if (!v) {
+        v = { tile: t, x: c, y: r, scale: 1, alpha: 1, dying: false };
+        session.visuals.push(v);
+      } else {
+        v.x = c;
+        v.y = r;
+        v.alpha = 1;
+      }
     }
   }
 
@@ -265,10 +301,12 @@ window.YXXL = window.YXXL || {};
   }
 
   async function animateMatch(res) {
+    tr('MATCH 消除 ' + res.destroyed.length + ' 格');
     for (const cellPos of res.destroyed) {
       const v = visualAt(cellPos[0], cellPos[1]);
-      if (!v) continue;
+      if (!v) { tr('  KILLMISS 格' + cellPos[0] + ',' + cellPos[1] + ' 无视觉'); continue; }
       const color = v.tile.c >= 0 ? N.Assets.colorOf(v.tile.c) : '#fff';
+      tr('  消除格' + cellPos[0] + ',' + cellPos[1] + ' → 视觉#' + v.tile.id);
       killVisual(v);
       burst(cellPos[0], cellPos[1], color, 10);
       addFlash(cellPos, 'rgba(255,255,230,0.45)', 0.22);
@@ -277,6 +315,7 @@ window.YXXL = window.YXXL || {};
       const t = session.board.grid[s.r][s.c];
       const v = { tile: t, x: s.c, y: s.r, scale: 0.2, alpha: 1, dying: false };
       session.visuals.push(v);
+      tr('  ADD特殊 格' + s.r + ',' + s.c + ' 新棋子#' + t.id);
       tweenObj(v, { scale: 1 }, 220, easeOutBack);
       addFlash([s.r, s.c], 'rgba(255,255,255,0.8)', 0.3);
     }
@@ -284,10 +323,12 @@ window.YXXL = window.YXXL || {};
   }
 
   async function animateExplosion(ex) {
+    tr('EXPLOSION 消除 ' + ex.destroyed.length + ' 格');
     for (const cellPos of ex.destroyed) {
       const v = visualAt(cellPos[0], cellPos[1]);
-      if (!v) continue;
+      if (!v) { tr('  KILLMISS 格' + cellPos[0] + ',' + cellPos[1] + ' 无视觉'); continue; }
       const color = v.tile.c >= 0 ? N.Assets.colorOf(v.tile.c) : '#fff';
+      tr('  爆炸格' + cellPos[0] + ',' + cellPos[1] + ' → 视觉#' + v.tile.id);
       killVisual(v);
       burst(cellPos[0], cellPos[1], color, 12);
       addFlash(cellPos, 'rgba(255,190,110,0.55)', 0.26);
@@ -296,13 +337,20 @@ window.YXXL = window.YXXL || {};
   }
 
   async function animateGravity(ev) {
+    tr('GRAVITY 下落 ' + ev.falls.length + ' 补充 ' + ev.fills.length);
     for (const f of ev.falls) {
       const v = visualByTile(f.tile);
-      if (v) tweenObj(v, { x: f.to[1], y: f.to[0] }, 240, easeInQuad);
+      if (v) {
+        tr('  FALL #' + f.tile.id + ' ' + f.from[0] + ',' + f.from[1] + '→' + f.to[0] + ',' + f.to[1]);
+        tweenObj(v, { x: f.to[1], y: f.to[0] }, 240, easeInQuad);
+      } else {
+        tr('  FALLMISS #' + f.tile.id + ' 无视觉');
+      }
     }
     for (const f of ev.fills) {
       const v = { tile: f.tile, x: f.to[1], y: f.fromAbove ? -1.4 : f.to[0] - 1.6, scale: 1, alpha: 1, dying: false };
       session.visuals.push(v);
+      tr('  ADDFILL 格' + f.to[0] + ',' + f.to[1] + ' 新棋子#' + f.tile.id);
       tweenObj(v, { y: f.to[0] }, 240, easeInQuad);
     }
     await delay(260);
@@ -327,58 +375,54 @@ window.YXXL = window.YXXL || {};
   /* ---- 连消主循环 ---- */
   async function resolveCascades() {
     let idx = 0;
-    while (true) {
+    let activity = true;
+    while (activity) {
+      activity = false;
+      /* 1. 收集到达底部的收集物 */
       const got = Board.collectBottom(session.board);
       if (got.length) {
+        activity = true;
         addScore(got.length * 500);
         N.Audio.sfx.collect();
         await animateCollect(got);
         updateHUD();
       }
+      /* 2. 消除 */
       const groups = Board.findMatches(session.board);
-      if (!groups.length) break;
-      idx++;
-      if (idx >= 2) {
-        floater('连击 ×' + idx, 4, 4, '#ffd24a');
-        N.Audio.sfx.match(idx - 1);
-      }
-      const res = Board.applyMatch(session.board, groups);
-      addScore(res.destroyed.length * 10 * idx);
-      if (res.spawns.length) addScore(res.spawns.length * 40);
-      if (res.iceBroken) { addScore(res.iceBroken * 20); N.Audio.sfx.ice(); }
-      if (res.chainBroken) { addScore(res.chainBroken * 30); N.Audio.sfx.chain(); }
-      if (res.jellyCleared) addScore(res.jellyCleared * 10);
-      await animateMatch(res);
-      if (res.triggered.length) {
-        const ex = Board.resolveExplosions(session.board, res.triggered.map(function (t) {
-          return { r: t.r, c: t.c, kind: 'special' };
-        }));
-        addScore(ex.destroyed.length * 10 * idx + ex.triggered.length * 60);
-        if (ex.iceBroken) { addScore(ex.iceBroken * 20); N.Audio.sfx.ice(); }
-        if (ex.chainBroken) { addScore(ex.chainBroken * 30); N.Audio.sfx.chain(); }
-        if (ex.jellyCleared) addScore(ex.jellyCleared * 10);
-        N.Audio.sfx.special();
-        await animateExplosion(ex);
-      }
-      const ev = Board.gravityAndFill(session.board);
-      if (ev.falls.length || ev.fills.length) {
-        await animateGravity(ev);
-        /* 停顿一拍,让玩家看清掉落后再进行下一轮连消 */
-        await delay(120);
+      if (groups.length) {
+        activity = true;
+        idx++;
+        if (idx >= 2) {
+          floater('连击 ×' + idx, 4, 4, '#ffd24a');
+          N.Audio.sfx.match(idx - 1);
+        }
+        const res = Board.applyMatch(session.board, groups);
+        addScore(res.destroyed.length * 10 * idx);
+        if (res.spawns.length) addScore(res.spawns.length * 40);
+        if (res.iceBroken) { addScore(res.iceBroken * 20); N.Audio.sfx.ice(); }
+        if (res.chainBroken) { addScore(res.chainBroken * 30); N.Audio.sfx.chain(); }
+        if (res.jellyCleared) addScore(res.jellyCleared * 10);
+        await animateMatch(res);
+        if (res.triggered.length) {
+          const ex = Board.resolveExplosions(session.board, res.triggered.map(function (t) {
+            return { r: t.r, c: t.c, kind: 'special' };
+          }));
+          addScore(ex.destroyed.length * 10 * idx + ex.triggered.length * 60);
+          if (ex.iceBroken) { addScore(ex.iceBroken * 20); N.Audio.sfx.ice(); }
+          if (ex.chainBroken) { addScore(ex.chainBroken * 30); N.Audio.sfx.chain(); }
+          if (ex.jellyCleared) addScore(ex.jellyCleared * 10);
+          N.Audio.sfx.special();
+          await animateExplosion(ex);
+        }
+        await runGravity();
+      } else if (got.length) {
+        /* 只收集没消除:仍要填充棋盘,不能留下空洞 */
+        await runGravity();
       }
       updateHUD();
       if (isWin()) { endGame(true); return; }
       if (session.moves <= 0) { endGame(false); return; }
     }
-    const got2 = Board.collectBottom(session.board);
-    if (got2.length) {
-      addScore(got2.length * 500);
-      N.Audio.sfx.collect();
-      await animateCollect(got2);
-      updateHUD();
-    }
-    if (isWin()) { endGame(true); return; }
-    if (session.moves <= 0) { endGame(false); return; }
     if (!Board.findPossibleMove(session.board)) {
       N.Audio.sfx.shuffle();
       await delay(250);
@@ -388,7 +432,17 @@ window.YXXL = window.YXXL || {};
       N.UI.toast('棋盘太乱啦,重新洗牌!');
       await delay(320);
     }
+    reconcileVisuals();
     session.state = 'idle';
+  }
+
+  async function runGravity() {
+    const ev = Board.gravityAndFill(session.board);
+    if (ev.falls.length || ev.fills.length) {
+      await animateGravity(ev);
+      /* 停顿一拍,让玩家看清掉落后再进行下一轮连消 */
+      await delay(120);
+    }
   }
 
   /* ---- 交换 ---- */
@@ -506,6 +560,7 @@ window.YXXL = window.YXXL || {};
     s.state = 'over';
     s.win = win;
     s.hint = null;
+    reconcileVisuals();
     N.Audio.stopMusic();
     let stars = 0, bells = 0;
     if (win && s.mode === 'level') {

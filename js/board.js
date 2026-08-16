@@ -5,8 +5,9 @@ window.YXXL = window.YXXL || {};
   const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
   const ADJ = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 
+  let tileSeq = 0;
   function makeTile(color, special) {
-    return { c: color, special: special || null, ice: 0, chain: false, ingredient: null };
+    return { id: ++tileSeq, c: color, special: special || null, ice: 0, chain: false, ingredient: null };
   }
   function emptyGrid() {
     const g = [];
@@ -359,6 +360,20 @@ window.YXXL = window.YXXL || {};
 
   /* ---- 重力与填充 ---- */
   function gravityAndFill(board) {
+    if (window.__YXXL_TRACE) {
+      /* 模型完整性探测:同一棋子对象出现在两个格子则报错 */
+      const seen = new Map();
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        const t = board.grid[r][c];
+        if (!t) continue;
+        if (seen.has(t)) {
+          const prev = seen.get(t);
+          console.error('DUP TILE #' + t.id + ' 在 ' + prev + ' 和 ' + r + ',' + c);
+        } else {
+          seen.set(t, r + ',' + c);
+        }
+      }
+    }
     const falls = [], fills = [];
     const cfg = board.cfg;
     let onBoard = countIngredients(board);
