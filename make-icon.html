@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>图标生成</title></head>
+<body style="background:#222;color:#fff;font-family:monospace">
+<p>正在渲染图标…</p>
+<div id="out" data-png=""></div>
+<img id="preview" style="width:128px;image-rendering:pixelated">
+<script>
+(function () {
+  /* 羊村消消乐应用图标:蓝色圆角方块 + 喜羊羊白羊毛头 + 蓝铃铛 */
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">' +
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#8fd0f5"/><stop offset="1" stop-color="#4a9edc"/></linearGradient></defs>' +
+    '<rect x="8" y="8" width="240" height="240" rx="56" fill="url(#g)" stroke="#3a7ab0" stroke-width="10"/>' +
+    '<ellipse cx="88" cy="64" rx="56" ry="24" fill="rgba(255,255,255,0.25)"/>' +
+    /* 羊角 */
+    '<path d="M80 66 Q44 58 48 14 Q74 36 96 52 Z" fill="#a8d8f5" stroke="#6ba8d8" stroke-width="5"/>' +
+    '<path d="M176 66 Q212 58 208 14 Q182 36 160 52 Z" fill="#a8d8f5" stroke="#6ba8d8" stroke-width="5"/>' +
+    /* 羊毛云朵 */
+    '<circle cx="128" cy="124" r="74" fill="#ffffff" stroke="#d8d2c2" stroke-width="5"/>' +
+    '<circle cx="72" cy="92" r="46" fill="#ffffff" stroke="#d8d2c2" stroke-width="5"/>' +
+    '<circle cx="184" cy="92" r="46" fill="#ffffff" stroke="#d8d2c2" stroke-width="5"/>' +
+    '<circle cx="128" cy="74" r="42" fill="#ffffff" stroke="#d8d2c2" stroke-width="5"/>' +
+    '<circle cx="96" cy="66" r="28" fill="#ffffff" stroke="#d8d2c2" stroke-width="5"/>' +
+    '<circle cx="160" cy="66" r="28" fill="#ffffff" stroke="#d8d2c2" stroke-width="5"/>' +
+    /* 脸 */
+    '<ellipse cx="128" cy="140" rx="46" ry="42" fill="#fffaf0" stroke="#e0d4c0" stroke-width="4"/>' +
+    '<ellipse cx="104" cy="132" rx="15" ry="19" fill="#2b2320"/>' +
+    '<circle cx="109" cy="125" r="5.5" fill="#fff"/>' +
+    '<ellipse cx="152" cy="132" rx="15" ry="19" fill="#2b2320"/>' +
+    '<circle cx="147" cy="125" r="5.5" fill="#fff"/>' +
+    '<path d="M116 160 Q128 170 140 160" stroke="#6b5240" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="86" cy="154" rx="12" ry="8" fill="#ffb8c8" opacity="0.75"/>' +
+    '<ellipse cx="170" cy="154" rx="12" ry="8" fill="#ffb8c8" opacity="0.75"/>' +
+    /* 蓝铃铛 */
+    '<path d="M96 190 Q128 204 160 190" stroke="#4a90c8" stroke-width="9" fill="none"/>' +
+    '<circle cx="128" cy="208" r="22" fill="#5ba8e8" stroke="#3a7ab0" stroke-width="5"/>' +
+    '<path d="M117 208 h22" stroke="#2c5f85" stroke-width="6" stroke-linecap="round"/>' +
+    '<circle cx="128" cy="219" r="5.6" fill="#2c5f85"/>' +
+    '</svg>';
+  var url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  var img = new Image();
+  img.onload = function () {
+    var sizes = [256, 192, 512, 1024];
+    var out = document.getElementById('out');
+    for (var i = 0; i < sizes.length; i++) {
+      var c = document.createElement('canvas');
+      c.width = sizes[i]; c.height = sizes[i];
+      var ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, sizes[i], sizes[i]);
+      out.setAttribute('data-png-' + sizes[i], c.toDataURL('image/png'));
+    }
+    document.getElementById('preview').src = out.getAttribute('data-png-256');
+    document.querySelector('p').textContent = '渲染完成 256/192/512';
+  };
+  img.onerror = function () { document.querySelector('p').textContent = '渲染失败'; };
+  img.src = url;
+})();
+</script>
+</body>
+</html>

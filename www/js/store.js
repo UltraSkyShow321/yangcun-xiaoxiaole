@@ -18,11 +18,17 @@ window.YXXL = window.YXXL || {};
       stars: {},
       seenIntro: {},
       tutorialDone: false,
+      tutCollect: false,
+      tutJelly: false,
+      tutSpecial: false,
       musicPrefSet: false,
+      musicVersion: 2,
+      failCounts: {},
+      dailyBest: {},
       bells: 120,
       boosters: { hammer: 3, shuffle: 2, moves5: 2, pan: 1, cake: 1, bomb: 1 },
       endlessBest: 0,
-      settings: { music: false, sfx: true }
+      settings: { music: true, sfx: true }
     };
   }
 
@@ -40,10 +46,10 @@ window.YXXL = window.YXXL || {};
     for (const k in d) if (!(k in save)) save[k] = d[k];
     for (const k in d.boosters) if (!(k in save.boosters)) save.boosters[k] = 0;
     for (const k in d.settings) if (!(k in save.settings)) save.settings[k] = d.settings[k];
-    // 迁移:老存档默认开启的背景音乐改为关闭(后续在设置里可手动开启)
-    if (!save.musicPrefSet) {
-      save.settings.music = false;
-      save.musicPrefSet = true;
+    // 迁移:重做后的新音乐默认开启(仅此一次;用户后续可在设置里关闭)
+    if ((save.musicVersion || 0) < 2) {
+      save.settings.music = true;
+      save.musicVersion = 2;
       persist();
     }
     return save;
@@ -97,6 +103,28 @@ window.YXXL = window.YXXL || {};
     markIntroSeen: function (id) { save.seenIntro[id] = true; persist(); },
     tutorialDone: function () { return !!save.tutorialDone; },
     markTutorialDone: function () { save.tutorialDone = true; persist(); },
+    tutSeen: function (key) { return !!save[key]; },
+    markTutSeen: function (key) { save[key] = true; persist(); },
+    failCount: function (id) { return save.failCounts[id] || 0; },
+    addFail: function (id) { save.failCounts[id] = (save.failCounts[id] || 0) + 1; persist(); },
+    clearFails: function (id) { save.failCounts[id] = 0; persist(); },
+    dailyBest: function (date) { return save.dailyBest[date] || 0; },
+    setDailyBest: function (date, score) {
+      if (score > (save.dailyBest[date] || 0)) { save.dailyBest[date] = score; persist(); }
+      return save.dailyBest[date];
+    },
+    exportSave: function () { return JSON.stringify(save); },
+    importSave: function (json) {
+      try {
+        const d = JSON.parse(json);
+        if (d && typeof d === 'object' && d.boosters && typeof d.bells === 'number') {
+          save = Object.assign(defaults(), d);
+          persist();
+          return true;
+        }
+      } catch (e) { /* 无效数据 */ }
+      return false;
+    },
     settings: function () { return save.settings; },
     saveSettings: function (s) { save.settings = s; persist(); }
   };

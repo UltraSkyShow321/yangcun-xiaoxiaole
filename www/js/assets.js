@@ -320,6 +320,19 @@ window.YXXL = window.YXXL || {};
       );
       return urlCache.chain;
     },
+    vineURL: function () {
+      if (!urlCache.vine) urlCache.vine = svgUrl(
+        '<path d="M14 30 Q34 16 54 30 T94 30" fill="none" stroke="#5f9e3e" stroke-width="7" stroke-linecap="round"/>' +
+        '<path d="M20 52 Q44 38 66 52 T100 52" fill="none" stroke="#4a8f3e" stroke-width="7" stroke-linecap="round"/>' +
+        '<path d="M14 74 Q36 60 58 74 T94 74" fill="none" stroke="#5f9e3e" stroke-width="7" stroke-linecap="round"/>' +
+        '<path d="M26 92 Q46 80 68 92" fill="none" stroke="#4a8f3e" stroke-width="7" stroke-linecap="round"/>' +
+        '<path d="M54 30 q6 -8 12 2 q-6 4 -12 -2" fill="#7dbb5e" stroke="#4a8f3e" stroke-width="3"/>' +
+        '<path d="M66 52 q8 -8 14 2 q-7 4 -14 -2" fill="#7dbb5e" stroke="#4a8f3e" stroke-width="3"/>' +
+        '<path d="M30 74 q6 -8 12 2 q-6 4 -12 -2" fill="#7dbb5e" stroke="#4a8f3e" stroke-width="3"/>' +
+        '<path d="M80 74 q6 -8 12 2 q-6 4 -12 -2" fill="#7dbb5e" stroke="#4a8f3e" stroke-width="3"/>'
+      );
+      return urlCache.vine;
+    },
     boosterIconURL: function (key) {
       if (!urlCache['b_' + key]) {
         const map = {
@@ -353,7 +366,7 @@ window.YXXL = window.YXXL || {};
         urls.push(this.faceURL(i));
         urls.push(this.headURL(i));
       }
-      urls.push(this.wolfURL(), this.wolfHeadURL(), this.redwolfURL(), this.cakeIngURL(), this.iceURL(), this.chainURL());
+      urls.push(this.wolfURL(), this.wolfHeadURL(), this.redwolfURL(), this.cakeIngURL(), this.iceURL(), this.chainURL(), this.vineURL());
       for (let i = 0; i < CHAR_IDS.length; i++) {
         urls.push(this.specialURL(i, 'pan'), this.specialURL(i, 'cake'), this.specialURL(i, 'bomb'));
       }

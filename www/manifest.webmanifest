@@ -1,0 +1,15 @@
+{
+  "name": "羊村消消乐",
+  "short_name": "羊村消消乐",
+  "description": "喜羊羊与灰太狼主题消消乐(原创同人)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#6db3e8",
+  "theme_color": "#7ec8f0",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

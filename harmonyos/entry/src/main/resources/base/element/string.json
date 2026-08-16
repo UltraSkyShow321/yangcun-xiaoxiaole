@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "羊村消消乐游戏模块" },
+    { "name": "EntryAbility_desc", "value": "羊村消消乐" },
+    { "name": "EntryAbility_label", "value": "羊村消消乐" }
+  ]
+}

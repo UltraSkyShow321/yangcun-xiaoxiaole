@@ -7,7 +7,7 @@ window.YXXL = window.YXXL || {};
 
   let tileSeq = 0;
   function makeTile(color, special) {
-    return { id: ++tileSeq, c: color, special: special || null, ice: 0, chain: false, ingredient: null };
+    return { id: ++tileSeq, c: color, special: special || null, ice: 0, chain: false, vine: false, ingredient: null };
   }
   function emptyGrid() {
     const g = [];
@@ -16,6 +16,15 @@ window.YXXL = window.YXXL || {};
   }
   function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
   function sameColor(t, col) { return t && !t.ingredient && t.c === col; }
+  /* 种子随机数(每日挑战固定棋盘用) */
+  function seededRng(seed) {
+    if (seed == null) return Math.random;
+    let s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
   function countIngredients(board) {
     let n = 0;
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -32,12 +41,12 @@ window.YXXL = window.YXXL || {};
   function randColorFor(board, r, c) {
     const n = board.cfg.colors;
     for (let tries = 0; tries < 16; tries++) {
-      const col = Math.floor(Math.random() * n);
+      const col = Math.floor(board.rng() * n);
       if (c >= 2 && sameColor(board.grid[r][c - 1], col) && sameColor(board.grid[r][c - 2], col)) continue;
       if (r >= 2 && sameColor(board.grid[r - 1][c], col) && sameColor(board.grid[r - 2][c], col)) continue;
       return col;
     }
-    return Math.floor(Math.random() * n);
+    return Math.floor(board.rng() * n);
   }
 
   function applyObstacles(board) {
@@ -47,13 +56,19 @@ window.YXXL = window.YXXL || {};
       const layers = obs.ice.layers || 1;
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         if (spawnCols.indexOf(c) >= 0) continue;
-        if (Math.random() < obs.ice.density) board.grid[r][c].ice = layers;
+        if (board.rng() < obs.ice.density) board.grid[r][c].ice = layers;
       }
     }
     if (obs.chain && obs.chain.density > 0) {
       for (let r = 1; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         if (spawnCols.indexOf(c) >= 0) continue;
-        if (Math.random() < obs.chain.density) board.grid[r][c].chain = true;
+        if (board.rng() < obs.chain.density) board.grid[r][c].chain = true;
+      }
+    }
+    if (obs.vine && obs.vine.density > 0) {
+      for (let r = 1; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (spawnCols.indexOf(c) >= 0) continue;
+        if (board.rng() < obs.vine.density) board.grid[r][c].vine = true;
       }
     }
   }
@@ -70,15 +85,15 @@ window.YXXL = window.YXXL || {};
 
   function placeInitialIngredient(board) {
     const cols = board.cfg.spawnCols || [0, 4, 8];
-    const col = cols[Math.floor(Math.random() * cols.length)];
+    const col = cols[Math.floor(board.rng() * cols.length)];
     const row = (board.cfg.ingredient && board.cfg.ingredient.startRow) || 3;
-    board.grid[row][col] = { c: -1, special: null, ice: 0, chain: false, ingredient: board.cfg.ingredient.type };
+    board.grid[row][col] = { id: ++tileSeq, c: -1, special: null, ice: 0, chain: false, vine: false, ingredient: board.cfg.ingredient.type };
   }
 
   function forceMoveableBoard(board) {
     /* 兜底:直接构造一个三连 */
     const r = 1, c = 1;
-    const col = Math.floor(Math.random() * board.cfg.colors);
+    const col = Math.floor(board.rng() * board.cfg.colors);
     board.grid[r][c] = makeTile(col);
     board.grid[r][c + 1] = makeTile((col + 1) % board.cfg.colors);
     board.grid[r][c + 2] = makeTile(col);
@@ -232,13 +247,14 @@ window.YXXL = window.YXXL || {};
     const destroyed = [];
     const triggered = [];
     const spawns = [];
-    let iceBroken = 0, chainBroken = 0, jellyCleared = 0;
+    let iceBroken = 0, chainBroken = 0, jellyCleared = 0, vineBroken = 0;
     for (const g of groups) {
       for (const cell of g.cells) {
         const r = cell[0], c = cell[1];
         const t = board.grid[r][c];
         if (!t) continue;
         if (t.chain) chainBroken++;
+        if (t.vine) vineBroken++;
         if (t.ice > 0) {
           iceBroken++;
           t.ice--;
@@ -260,7 +276,7 @@ window.YXXL = window.YXXL || {};
     for (const s of spawns) {
       board.grid[s.r][s.c] = makeTile(s.color, s.type);
     }
-    return { destroyed: destroyed, triggered: triggered, spawns: spawns, iceBroken: iceBroken, chainBroken: chainBroken, jellyCleared: jellyCleared };
+    return { destroyed: destroyed, triggered: triggered, spawns: spawns, iceBroken: iceBroken, chainBroken: chainBroken, jellyCleared: jellyCleared, vineBroken: vineBroken };
   }
 
   /* ---- 爆炸扩散 ---- */
@@ -295,7 +311,7 @@ window.YXXL = window.YXXL || {};
     const triggered = [];
     const queue = seeds.slice();
     const seen = new Set();
-    let iceBroken = 0, chainBroken = 0, jellyCleared = 0;
+    let iceBroken = 0, chainBroken = 0, jellyCleared = 0, vineBroken = 0;
     const push = function (s) { queue.push(s); };
 
     while (queue.length) {
@@ -339,6 +355,7 @@ window.YXXL = window.YXXL || {};
         triggered.push({ r: r, c: c, special: t.special });
         expandSpecial(board, t, r, c, queue, s.preferColor);
       }
+      if (t.vine) vineBroken++;
       if (t.ice > 0) {
         iceBroken++;
         t.ice--;
@@ -355,7 +372,7 @@ window.YXXL = window.YXXL || {};
         board.grid[r][c] = null;
       }
     }
-    return { destroyed: destroyed, triggered: triggered, iceBroken: iceBroken, chainBroken: chainBroken, jellyCleared: jellyCleared };
+    return { destroyed: destroyed, triggered: triggered, iceBroken: iceBroken, chainBroken: chainBroken, jellyCleared: jellyCleared, vineBroken: vineBroken };
   }
 
   /* ---- 重力与填充 ---- */
@@ -398,7 +415,7 @@ window.YXXL = window.YXXL || {};
         board.pendingIngredient--;
         onBoard++;
         const top = empties[0];
-        const ing = { c: -1, special: null, ice: 0, chain: false, ingredient: cfg.ingredient.type };
+        const ing = { id: ++tileSeq, c: -1, special: null, ice: 0, chain: false, vine: false, ingredient: cfg.ingredient.type };
         board.grid[top][c] = ing;
         fills.push({ to: [top, c], tile: ing, fromAbove: true });
         for (let i = 1; i < empties.length; i++) {
@@ -494,6 +511,8 @@ window.YXXL = window.YXXL || {};
     const ta = board.grid[ar][ac], tb = board.grid[br][bc];
     if (!ta || !tb || ta.ingredient || tb.ingredient) return false;
     if (ta.special || tb.special) return true;
+    /* 藤蔓缠住的棋子不能移动(特殊棋子可以与之交换发动) */
+    if (ta.vine || tb.vine) return false;
     if (ta.chain || tb.chain) return swapCreatesMatch(board, ar, ac, br, bc);
     return true;
   }
@@ -503,13 +522,13 @@ window.YXXL = window.YXXL || {};
       const tiles = [], cells = [];
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         const t = board.grid[r][c];
-        if (t && !t.ingredient && !t.chain && t.ice === 0 && !t.special) {
+        if (t && !t.ingredient && !t.chain && !t.vine && t.ice === 0 && !t.special) {
           tiles.push(t);
           cells.push([r, c]);
         }
       }
       for (let i = tiles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(board.rng() * (i + 1));
         const tmp = tiles[i]; tiles[i] = tiles[j]; tiles[j] = tmp;
       }
       for (let i = 0; i < cells.length; i++) board.grid[cells[i][0]][cells[i][1]] = tiles[i];
@@ -522,7 +541,9 @@ window.YXXL = window.YXXL || {};
     ROWS: ROWS,
     COLS: COLS,
     makeTile: makeTile,
-    create: function (cfg) { return { cfg: cfg, grid: null, jelly: null, collected: 0, pendingIngredient: 0 }; },
+    create: function (cfg) {
+      return { cfg: cfg, grid: null, jelly: null, collected: 0, pendingIngredient: 0, rng: seededRng(cfg.seed) };
+    },
     generate: generate,
     findMatches: findMatches,
     applyMatch: applyMatch,

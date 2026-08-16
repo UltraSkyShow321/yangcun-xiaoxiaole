@@ -7,7 +7,7 @@ const N = global.YXXL;
 function smartMove(board, cfg) {
   const o = cfg.objective;
   let ingPos = null;
-  if (o.type === 'collect') {
+  if (o.type === 'collect' || o.type === 'both') {
     for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
       const t = board.grid[r][c];
       if (t && t.ingredient) { ingPos = { r: r, c: c }; break; }
@@ -75,8 +75,15 @@ function smartMove(board, cfg) {
 function playGame(cfg) {
   const board = N.Board.create(cfg);
   N.Board.generate(board);
-  let moves = 0, guard = 0;
+  let moves = 0, guard = 0, score = 0;
   const o = cfg.objective;
+  const winCheck = function () {
+    if (o.type === 'collect') return board.collected >= o.target;
+    if (o.type === 'both') return board.collected >= o.count && score >= o.target;
+    if (o.type === 'jelly') return N.Board.jellyTotal(board) === 0;
+    if (o.type === 'score') return score >= o.target;
+    return false;
+  };
   while (moves < cfg.moves && guard < 300) {
     guard++;
     const mv = smartMove(board, cfg);
@@ -87,30 +94,28 @@ function playGame(cfg) {
     g[mv.b.r][mv.b.c] = t;
     const ta = g[mv.a.r][mv.a.c], tb = g[mv.b.r][mv.b.c];
     if (ta.special || tb.special) {
-      N.Board.resolveExplosions(board, [{ r: mv.a.r, c: mv.a.c, kind: 'cell' }, { r: mv.b.r, c: mv.b.c, kind: 'cell' }]);
+      const ex = N.Board.resolveExplosions(board, [{ r: mv.a.r, c: mv.a.c, kind: 'cell' }, { r: mv.b.r, c: mv.b.c, kind: 'cell' }]);
+      score += ex.destroyed.length * 10 + ex.triggered.length * 60;
     }
     moves++;
     let ci = 0;
     while (ci < 80) {
-      N.Board.collectBottom(board);
+      const got = N.Board.collectBottom(board);
+      score += got.length * 500;
       const groups = N.Board.findMatches(board);
       if (!groups.length) break;
       const res = N.Board.applyMatch(board, groups);
+      score += res.destroyed.length * 10 * ci + res.spawns.length * 40;
       if (res.triggered.length) {
-        N.Board.resolveExplosions(board, res.triggered.map(function (x) { return { r: x.r, c: x.c, kind: 'special' }; }));
+        const ex2 = N.Board.resolveExplosions(board, res.triggered.map(function (x) { return { r: x.r, c: x.c, kind: 'special' }; }));
+        score += ex2.destroyed.length * 10 * ci + ex2.triggered.length * 60;
       }
       N.Board.gravityAndFill(board);
       ci++;
     }
-    const win = (o.type === 'collect' && board.collected >= o.target) ||
-      (o.type === 'jelly' && N.Board.jellyTotal(board) === 0) ||
-      (o.type === 'score');
-    if (win) break;
+    if (winCheck()) break;
   }
-  const win = (o.type === 'collect' && board.collected >= o.target) ||
-    (o.type === 'jelly' && N.Board.jellyTotal(board) === 0) ||
-    (o.type === 'score');
-  return { win: win, moves: moves, collected: board.collected, jelly: N.Board.jellyTotal(board) };
+  return { win: winCheck(), moves: moves, collected: board.collected, jelly: N.Board.jellyTotal(board), score: score };
 }
 
 let allPass = true;

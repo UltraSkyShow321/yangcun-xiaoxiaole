@@ -6,85 +6,87 @@
 
 - **8 种消除棋子**:喜羊羊、美羊羊、懒羊羊、沸羊羊、暖羊羊、蕉太狼、小灰灰、慢羊羊(贴合原动画特征的白羊毛 Q 版形象)
 - **特殊棋子**:4 连 → 平底锅(清整行/列);5 连 → 青草蛋糕(清全场同色);L/T 形 → 羊角爆竹(3×3 爆炸);特殊+特殊组合大招
-- **30 个关卡**:6 个章节(青青草原 → 羊村大门 → 狼堡外围 → 狼堡内部 → 森林深处 → 狼堡之巅),每 5 关一个灰太狼 Boss 关
-- **三种关卡目标**:分数关、收集关(灰太狼/青草蛋糕掉落到棋盘底部)、果冻关
-- **障碍**:冰层、锁链、果冻
-- **6 种道具**:慢羊羊小锤、洗牌、加步器、平底锅、青草蛋糕、羊角爆竹;铃铛货币 + 羊村商店
-- **无尽模式**:60 步冲高分
+- **30 个关卡**:6 个章节(青青草原 → 狼堡之巅),每 5 关一个灰太狼 Boss 关,蜿蜒小路选关地图
+- **三种关卡目标**:分数关、收集关(灰太狼/蛋糕掉落收集)、果冻关、双目标关(分数+收集)
+- **障碍**:冰层、锁链、藤蔓、果冻
+- **6 种道具** + 铃铛货币 + 羊村商店
+- **无尽模式**(60 步冲高分)+ **每日挑战**(按日期固定种子的全新棋盘,本地纪录)
+- **原创 8-bit 音乐**:主菜单/普通关/Boss 关/胜利 4 首多声部旋律 + 全套音效(Web Audio 合成,无外部文件)
+- **新手引导**:第 1 关交换引导箭头;收集关/果冻关/特殊棋子的机制首见引导
+- **奖励时间**:通关后剩余步数转化为特殊棋子自动连爆刷分
+- **失败续命**:花 30 铃铛 +5 步继续;连续失败 3 次村长送加步器
 - **剧情对话**:章节开场、Boss 战、大结局("我还会回来的!")
-- **原创 8-bit 音乐音效**:主菜单/普通关/Boss 关/胜利 4 首旋律 + 全套音效(Web Audio 合成,无外部音频文件)
+- **PWA**:支持离线游玩与"添加到主屏幕"
+- **存档**:localStorage + 导出/导入 JSON
+
+## 多平台
+
+| 平台 | 产物 | 说明 |
+|---|---|---|
+| 网页端 | 本项目 | 双击 index.html 或静态服务器;支持 PWA 安装到桌面 |
+| Windows | `release/羊村消消乐-1.0.0-portable.exe` | 便携版,双击即玩 |
+| Android | `release/羊村消消乐-1.0.0-release.apk` | 正式签名版,直接安装 |
+| iOS/iPadOS | GitHub Actions 构建 | 推送到 GitHub 后 Actions 自动产出未签名 ipa(安装需自签/开发者账号) |
+| macOS | GitHub Actions 构建 | Actions 自动产出未签名 app zip(本地可直接运行) |
+| 鸿蒙 NEXT | `harmonyos/` 壳工程 | DevEco Studio 打开构建(签名需华为开发者账号),见 `harmonyos/README.md` |
 
 ## 目录结构
 
 ```
-├── index.html        游戏入口(双击即可用浏览器打开游玩)
-├── preview.html      素材预览页(查看全部角色/特殊棋子/障碍美术)
-├── css/              样式
-├── js/               游戏代码
-│   ├── assets.js     全部 SVG 素材
-│   ├── audio.js      Web Audio 音乐音效合成
-│   ├── board.js      棋盘核心逻辑
-│   ├── game.js       游戏会话(渲染/动画/输入)
-│   ├── levels.js     30 关配置 + 剧情台词
-│   ├── store.js      存档与经济
-│   └── ui.js         界面与流程
-├── test/             测试
-│   ├── auto.html     浏览器端到端自测(18 项)
-│   ├── engine.test.js    引擎压力测试(node)
-│   └── smart-bot.test.js 智能机器人通关率测试(node)
-├── electron/         Electron 桌面壳
-├── android/          Capacitor Android 工程
-└── release/          打包产物(exe)
+├── index.html          游戏入口(双击即可游玩)
+├── preview.html        素材预览页
+├── manifest.webmanifest / sw.js / icon-*.png   PWA
+├── css/ js/            游戏代码(零构建依赖)
+├── test/               测试(引擎压力/智能机器人/真实页面完整测试)
+├── electron/           Electron 桌面壳
+├── android/            Capacitor Android 工程(含签名配置)
+├── ios/                Capacitor iOS 工程
+├── harmonyos/          鸿蒙 NEXT ArkTS 壳工程
+├── .github/workflows/  GitHub Actions 多平台自动构建
+└── release/            打包产物(exe/apk)
 ```
 
-## 本地运行(网页版)
-
-方式一:直接双击 `index.html`(零依赖,支持 file:// 协议)。
-方式二:起一个静态服务器:
+## 本地运行
 
 ```bash
-node server.js        # 然后浏览器打开 http://localhost:8600
+node server.js          # 浏览器打开 http://localhost:8600
+# 或直接双击 index.html
 ```
 
-## 自动化测试
+## 测试
 
 ```bash
-# 1. 引擎压力测试(全部 30 关随机/智能对局,验证无死循环、收集/果冻可完成)
-node test/engine.test.js
-# 2. 智能机器人通关率测试(每关 15 局,评估难度是否合理)
-node test/smart-bot.test.js
-# 3. 浏览器端到端自测(剧情/对局/结算/道具/商店/无尽/存档 18 项)
-#    浏览器打开 http://localhost:8600/test/auto.html 等待出结果
+node test/engine.test.js          # 引擎压力测试(30关随机/智能对局)
+node test/smart-bot.test.js       # 智能机器人逐关通关率
+# 浏览器打开 http://localhost:8600/?selftest=1
+#   → 真实游戏页面上的完整自测:棋盘一致性/交换动画时序/渲染冒烟/页面错误捕获
 ```
 
-## 打包 Windows exe
+## 打包
 
 ```bash
-npm install                       # 依赖(建议设置 npm 镜像)
-npm run dist:win                  # 输出 release/羊村消消乐-1.0.0-portable.exe
+# Windows exe(国内网络需先设置镜像,见下)
+npx electron-builder --win portable
+# Android release apk(已配置签名,密钥见 android/app/release.keystore)
+mkdir -p www && cp -r index.html css js sw.js manifest.webmanifest icon-*.png www/
+npx cap sync android && cd android && ./gradlew assembleRelease
+# iOS(需 macOS + Xcode)
+npx cap sync ios && cd ios/App && pod install && xcodebuild ...
 ```
 
-注:国内网络建议设置镜像:
+国内网络镜像:
 ```bash
 export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 export ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/"
+npm_config_sharp_binary_host="https://npmmirror.com/mirrors/sharp-libvips" npm install
 ```
 
-## 打包 Android apk
+## 已知事项
 
-```bash
-mkdir -p www && cp -r index.html css js www/    # 更新 web 目录
-npx cap sync android
-cd android && ./gradlew assembleDebug           # 输出 app/build/outputs/apk/debug/app-debug.apk
-```
-
-需要 JDK 17+ 与 Android SDK(本机已配置 JDK 21 + SDK 36)。正式发布请使用 `assembleRelease` 并配置签名。
-
-## 其他平台
-
-- **iOS / iPadOS / macOS**:同一套 Capacitor 工程,在 macOS 上执行 `npx cap add ios` 后用 Xcode 打包。
-- **纯血鸿蒙(HarmonyOS NEXT 6.0+)**:游戏为纯 Web 应用,可直接用 WebView 壳工程加载 `www/` 目录;或将网页版部署为在线页面后用鸿蒙浏览器打开。
+- exe 打包依赖 winCodeSign 工具;本机已通过 `tools/7za-wrapper.c`(自动追加 `-snl-` 参数)解决其 7z 符号链接解压问题,`node_modules` 重装后需重新编译安装该包装器。
+- iOS/鸿蒙安装包签名需要对应开发者账号(Apple / 华为 AGC),这是平台方要求。
+- Android 签名密钥为开发用密钥,正式发布建议更换。
 
 ## 存档
 
-进度、星级、铃铛、道具库存、无尽最高分、设置保存在浏览器 localStorage(键 `yxxl_save_v1`)。设置页可一键重置。
+进度、星级、铃铛、道具、每日纪录、设置保存在 localStorage(键 `yxxl_save_v1`)。设置页支持导出/导入/重置。

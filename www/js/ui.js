@@ -49,6 +49,9 @@ window.YXXL = window.YXXL || {};
     $('btn-endless').addEventListener('click', function () {
       N.Audio.sfx.click(); showPrelevel(N.Levels.ENDLESS, 'endless');
     });
+    $('btn-daily').addEventListener('click', function () {
+      N.Audio.sfx.click(); showPrelevel(N.Levels.getDaily(), 'daily');
+    });
     $('btn-shop').addEventListener('click', function () {
       N.Audio.sfx.click(); buildShop(); showScreen('screen-shop');
     });
@@ -80,26 +83,38 @@ window.YXXL = window.YXXL || {};
     if (!store.chapterUnlocked(currentChapter)) currentChapter = 1;
     const grid = $('level-grid');
     grid.innerHTML = '';
+    const chapter = N.Levels.CHAPTERS[currentChapter - 1];
+    const marks = ['xiyangyang', 'meiyangyang', 'feiyangyang', 'huitailang', 'nuanyangyang', 'hongtailang'];
+    const banner = document.createElement('div');
+    banner.className = 'chapter-banner';
+    banner.innerHTML = '<img src="' + avatarURL(marks[currentChapter - 1]) + '" alt="">' +
+      '<div><b>第' + currentChapter + '章 · ' + chapter.name + '</b>' +
+      '<span>' + (currentChapter === 6 ? '最终决战!' : '共 5 关,第 5 关为灰太狼 Boss 关') + '</span></div>';
+    grid.appendChild(banner);
+    const path = document.createElement('div');
+    path.className = 'level-path';
     for (let i = 1; i <= 5; i++) {
       const id = (currentChapter - 1) * 5 + i;
       const cfg = N.Levels.get(id);
       const unlocked = store.levelUnlocked(id);
       const stars = store.starsFor(id);
-      const card = document.createElement('div');
-      card.className = 'level-card' + (unlocked ? '' : ' locked') + (cfg.isBoss ? ' boss' : '');
+      const node = document.createElement('div');
+      node.className = 'level-node' + (unlocked ? '' : ' locked') + (cfg.isBoss ? ' boss' : '');
       let starsHtml = '';
       for (let s2 = 1; s2 <= 3; s2++) starsHtml += '<span class="star' + (stars >= s2 ? ' on' : '') + '">★</span>';
-      card.innerHTML = '<div class="level-num">' + id + '</div>' +
-        '<div class="level-name">' + cfg.name + '</div>' +
-        '<div class="level-stars">' + starsHtml + '</div>' +
-        (cfg.isBoss ? '<img class="boss-icon" src="' + N.Assets.wolfURL() + '" alt="Boss">' : '');
-      card.addEventListener('click', function () {
+      node.innerHTML = '<div class="node-dot">' + id + '</div>' +
+        '<div class="node-info"><div class="node-name">' + cfg.name + (cfg.isBoss ? ' ·BOSS' : '') + '</div>' +
+        '<div class="level-stars">' + starsHtml + '</div></div>' +
+        (cfg.isBoss ? '<img class="boss-icon" src="' + N.Assets.wolfURL() + '" alt="Boss">' : '') +
+        (unlocked ? '' : '<div class="node-lock">🔒</div>');
+      node.addEventListener('click', function () {
         if (!unlocked) { N.UI.toast('先通过上一关!'); return; }
         N.Audio.sfx.click();
         openLevel(id);
       });
-      grid.appendChild(card);
+      path.appendChild(node);
     }
+    grid.appendChild(path);
   }
 
   /* ---- 进入关卡 ---- */
@@ -124,15 +139,20 @@ window.YXXL = window.YXXL || {};
       ? '让 ' + o.target + ' 只灰太狼掉落到棋盘底部出口'
       : '收集 ' + o.target + ' 个青草蛋糕(掉落到棋盘底部)';
     if (o.type === 'jelly') return '清除棋盘上所有果冻(共 ' + o.target + ' 层)';
+    if (o.type === 'both') return '获得 ' + o.target + ' 分,同时让 ' + o.count + ' 只灰太狼掉落到棋盘底部出口';
     return '60 步内冲击最高分!';
   }
 
   function showPrelevel(cfg, mode) {
     pending = { cfg: cfg, mode: mode };
     equipped = {};
-    $('prelevel-title').textContent = mode === 'endless' ? '无尽挑战' : ('第 ' + cfg.id + ' 关 · ' + cfg.name);
+    const title = mode === 'endless' ? '无尽挑战' : (mode === 'daily' ? '每日挑战' : ('第 ' + cfg.id + ' 关 · ' + cfg.name));
+    let meta = '步数:' + cfg.moves + ' 步' + (cfg.isBoss ? ' · BOSS 关' : '');
+    if (mode === 'endless') meta += ' · 历史最高 ' + N.Store.get().endlessBest + ' 分';
+    if (mode === 'daily') meta += ' · 今日最高 ' + N.Store.dailyBest(N.Levels.todayKey()) + ' 分 · 每天一张全新棋盘';
+    $('prelevel-title').textContent = title;
     $('prelevel-desc').textContent = objectiveDesc(cfg);
-    $('prelevel-meta').textContent = '步数:' + cfg.moves + ' 步' + (cfg.isBoss ? ' · BOSS 关' : '') + (mode === 'endless' ? ' · 历史最高 ' + N.Store.get().endlessBest + ' 分' : '');
+    $('prelevel-meta').textContent = meta;
     const box = $('prelevel-boosters');
     box.innerHTML = '';
     const status = $('equip-status');
@@ -180,7 +200,7 @@ window.YXXL = window.YXXL || {};
     $('btn-prelevel-back').onclick = function () {
       N.Audio.sfx.click();
       pending = null;
-      showScreen(mode === 'endless' ? 'screen-menu' : 'screen-levels');
+      showScreen(mode === 'level' ? 'screen-levels' : 'screen-menu');
     };
     showScreen('screen-prelevel');
   }
@@ -204,6 +224,10 @@ window.YXXL = window.YXXL || {};
         inner = '<h2 class="result-title lose">失败啦…</h2>' +
           '<div class="result-taunt"><img src="' + avatarURL(taunt.who) + '"><div><b>' + CHAR_NAMES[taunt.who] + ':</b>' + taunt.text + '</div></div>';
       }
+    } else if (data.mode === 'daily') {
+      inner = '<h2 class="result-title ' + (data.win ? 'win' : 'lose') + '">' + (data.win ? '挑战成功!' : '挑战结束') + '</h2>' +
+        '<div class="result-stars">' + starsHtml + '</div>' +
+        '<div class="result-best">今日最高:' + data.best + ' 分' + (data.score >= data.best && data.score > 0 ? ' (新纪录!)' : '') + '</div>';
     } else {
       inner = '<h2 class="result-title win">挑战结束</h2>' +
         '<div class="result-stars">' + starsHtml + '</div>' +
@@ -215,7 +239,11 @@ window.YXXL = window.YXXL || {};
     let btns = '';
     if (data.mode === 'level') {
       btns += '<button class="btn btn-primary" id="btn-result-next">' + (data.win ? '下一关' : '再试一次') + '</button>';
+      if (data.canResume) btns += '<button class="btn btn-resume" id="btn-result-resume">🔔 花 30 铃铛续命 +5 步</button>';
       btns += '<button class="btn" id="btn-result-back">返回选关</button>';
+    } else if (data.mode === 'daily') {
+      btns += '<button class="btn btn-primary" id="btn-result-next">再试一次</button>';
+      btns += '<button class="btn" id="btn-result-back">返回主菜单</button>';
     } else {
       btns += '<button class="btn btn-primary" id="btn-result-next">再来一局</button>';
       btns += '<button class="btn" id="btn-result-back">返回主菜单</button>';
@@ -227,6 +255,7 @@ window.YXXL = window.YXXL || {};
     $('btn-result-next').addEventListener('click', function () {
       N.Audio.sfx.click();
       if (data.mode === 'endless') { showPrelevel(N.Levels.ENDLESS, 'endless'); return; }
+      if (data.mode === 'daily') { showPrelevel(N.Levels.getDaily(), 'daily'); return; }
       if (data.win && data.cfg.id < N.Levels.total()) {
         const story = N.Levels.storyForClear(data.cfg.id);
         if (story) { showStory(story, function () { openLevel(data.cfg.id + 1); }); return; }
@@ -239,6 +268,15 @@ window.YXXL = window.YXXL || {};
         openLevel(data.cfg.id);
       }
     });
+    if (data.canResume) {
+      $('btn-result-resume').addEventListener('click', function () {
+        if (!N.Store.spendBells(30)) { N.UI.toast('铃铛不够了'); return; }
+        N.Audio.sfx.booster();
+        N.UI.updateBells();
+        N.Game.resume(5);
+        N.UI.showScreen('screen-game');
+      });
+    }
     $('btn-result-back').addEventListener('click', function () {
       N.Audio.sfx.click();
       N.Audio.stopMusic();
@@ -319,6 +357,38 @@ window.YXXL = window.YXXL || {};
       $('btn-reset').textContent = '重置全部进度';
       $('btn-reset').classList.remove('danger');
       confirmReset = false;
+    });
+    $('btn-export').addEventListener('click', function () {
+      N.Audio.sfx.click();
+      const data = N.Store.exportSave();
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'yangcun-save-' + N.Levels.todayKey() + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      N.UI.toast('存档已导出为文件');
+    });
+    $('btn-import').addEventListener('click', function () {
+      $('file-import').click();
+    });
+    $('file-import').addEventListener('change', function (e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        if (N.Store.importSave(String(reader.result))) {
+          N.Store.load();
+          N.UI.toast('存档导入成功!');
+          refreshSettingsUI();
+          updateBells();
+        } else {
+          N.UI.toast('文件格式不正确,导入失败');
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(f);
     });
     $('btn-settings-back').addEventListener('click', function () {
       N.Audio.sfx.click();
@@ -422,9 +492,12 @@ window.YXXL = window.YXXL || {};
   }
 
   /* ---- 新手引导提示条 ---- */
-  function showTutorialTip() {
+  function showTutorialTip(text) {
     const tip = $('tutorial-tip');
-    if (tip) tip.style.display = 'flex';
+    if (!tip) return;
+    const span = tip.querySelector('span');
+    if (span && text) span.textContent = text;
+    tip.style.display = 'flex';
   }
   function hideTutorialTip() {
     const tip = $('tutorial-tip');
@@ -432,9 +505,12 @@ window.YXXL = window.YXXL || {};
   }
   function skipTutorial() {
     hideTutorialTip();
-    N.Store.markTutorialDone();
     const s = N.Game.getSession();
-    if (s) s.tutorial = null;
+    if (s && s.tutorial) {
+      if (s.tutorial.kind === 'swap') N.Store.markTutorialDone();
+      else N.Store.markTutSeen(s.tutorial.kind === 'collect' ? 'tutCollect' : 'tutJelly');
+      s.tutorial = null;
+    }
   }
 
   /* ---- 玩法说明 ---- */
@@ -458,7 +534,11 @@ window.YXXL = window.YXXL || {};
       '<div class="help-item"><img src="' + A.wolfURL() + '"><span>收集关:消除灰太狼/蛋糕下方的棋子,让它掉落到棋盘底部出口</span></div>' +
       '<div class="help-item"><span class="help-big">🍮</span><span>果冻关:消除覆盖果冻的棋子,清完所有果冻</span></div>'));
     rows.push(sec('④ 障碍', '<div class="help-item"><img src="' + A.iceURL() + '"><span>冰层:被冻住的棋子要消除两次才能打碎</span></div>' +
-      '<div class="help-item"><img src="' + A.chainURL() + '"><span>锁链:被锁住的棋子不能随便移动,只有交换后能形成消除才行</span></div>'));
+      '<div class="help-item"><img src="' + A.chainURL() + '"><span>锁链:被锁住的棋子不能随便移动,只有交换后能形成消除才行</span></div>' +
+      '<div class="help-item"><img src="' + A.vineURL() + '"><span>藤蔓:缠住的棋子无法移动,消除它才能解开(特殊棋子可与之交换)</span></div>'));
+    rows.push(sec('⑤ 特殊目标', '<div class="help-item"><span class="help-big">🎯</span><span>双目标关:既要达到目标分,又要收集指定数量的灰太狼</span></div>' +
+      '<div class="help-item"><span class="help-big">🔄</span><span>剩余步数会在通关后转化为奖励时间,自动连爆刷分</span></div>' +
+      '<div class="help-item"><span class="help-big">🔔</span><span>失败时可用 30 铃铛续命(+5 步)继续挑战</span></div>'));
     let boost = '';
     N.Store.BOOSTERS.forEach(function (b) {
       boost += '<div class="help-item"><img src="' + A.boosterIconURL(b.key) + '"><span><b>' + b.name + '</b>:' + b.desc + '</span></div>';

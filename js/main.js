@@ -20,10 +20,16 @@ window.YXXL = window.YXXL || {};
     };
     window.addEventListener('pointerdown', boot);
     window.addEventListener('keydown', boot);
+    /* PWA:注册 Service Worker(离线可玩,可添加到主屏幕) */
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () { /* 忽略注册失败 */ });
+      });
+    }
     /* 自检模式:在真实游戏页面上运行完整自动测试(仅开发用) */
     if (location.search.indexOf('selftest=1') >= 0) {
       const s2 = document.createElement('script');
-      s2.src = 'test/realtest-driver.js';
+      s2.src = 'test/realtest-driver.js?v=' + Date.now();
       document.body.appendChild(s2);
     }
   });

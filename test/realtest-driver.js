@@ -143,6 +143,35 @@
     await sleep(900);
     var s = N.Game.getSession();
     var guard = 0, problemsTotal = 0, maxAnim = 0;
+    /* 渲染冒烟测试:强制渲染一帧,确认画布绘制管线正常(非纯背景色) */
+    if (label.indexOf('L1') === 0) {
+      var cv = document.getElementById('board-canvas');
+      N.Game.__renderTest();
+      await sleep(150);
+      if (cv) {
+        var ctx2 = cv.getContext('2d');
+        var w2 = cv.width, h2 = cv.height;
+        var d = ctx2.getImageData(0, 0, w2, h2).data;
+        var colored = 0, opaque = 0;
+        for (var pi = 20; pi < d.length; pi += 160) {
+          if (d[pi + 3] > 0) opaque++;
+          if (d[pi + 3] > 0 && !(d[pi] === 201 && d[pi + 1] === 230 && d[pi + 2] === 181)) colored++;
+        }
+        var imgsOk = true;
+        for (var ii = 0; ii < N.Assets.CHAR_IDS.length; ii++) {
+          var im = N.Assets.img(N.Assets.faceURL(ii));
+          if (!im.complete || im.naturalWidth === 0) imgsOk = false;
+        }
+        var probe = ctx2.getImageData(15, 15, 1, 1).data;
+        var tileProbe = ctx2.getImageData(Math.round(40 * 0.5 + 2), Math.round(40 * 0.5 + 2), 1, 1).data;
+        log('渲染诊断: 画布' + w2 + 'x' + h2 + ' dpr=' + (window.devicePixelRatio || 1) +
+          ' 视觉对象=' + s.visuals.length + ' 图标已加载=' + imgsOk + ' 不透明采样=' + opaque + ' 彩色采样=' + colored +
+          ' 红色探针=(' + probe[0] + ',' + probe[1] + ',' + probe[2] + ') 格点=(' + tileProbe[0] + ',' + tileProbe[1] + ',' + tileProbe[2] + ')');
+        log('渲染冒烟测试: ' + (colored > 50 ? '通过' : '失败'), colored > 50);
+      } else {
+        log('渲染冒烟测试: 未找到画布', false);
+      }
+    }
     while (s.state !== 'over' && guard < 70) {
       guard++;
       if (s.state !== 'idle') { await sleep(350); continue; }

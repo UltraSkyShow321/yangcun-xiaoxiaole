@@ -7,3 +7,5 @@ android/
 *.log
 .DS_Store
 Thumbs.db
+winCodeSign-2.6.0/
+tools/

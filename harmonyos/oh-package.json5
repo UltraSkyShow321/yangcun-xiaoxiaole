@@ -1,0 +1,8 @@
+{
+  "modelVersion": "5.0.0",
+  "description": "羊村消消乐 - 鸿蒙 NEXT 壳工程",
+  "dependencies": {},
+  "devDependencies": {
+    "@ohos/hypium": "1.0.19"
+  }
+}

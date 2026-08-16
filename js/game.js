@@ -69,10 +69,20 @@ window.YXXL = window.YXXL || {};
 
   /* 新手引导完成(首次成功交换后) */
   function finishTutorial() {
-    if (!session.tutorial) return;
+    if (!session.tutorial || session.tutorial.kind !== 'swap') return;
     session.tutorial = null;
     N.Store.markTutorialDone();
     N.UI.hideTutorialTip();
+  }
+
+  /* 机制首见引导完成 */
+  function finishMechTutorial(key) {
+    if (!session.tutorial || session.tutorial.kind === 'swap') return;
+    const storeKey = session.tutorial.kind === 'collect' ? 'tutCollect' : 'tutJelly';
+    session.tutorial = null;
+    N.Store.markTutSeen(storeKey);
+    N.UI.hideTutorialTip();
+    void key;
   }
 
   /* ---- 视觉对象 ---- */
@@ -132,7 +142,14 @@ window.YXXL = window.YXXL || {};
   }
 
   /* ---- 粒子与特效 ---- */
+  function perfScale() {
+    let k = 1;
+    if ((window.devicePixelRatio || 1) > 1.5) k *= 0.7;
+    if (W > 0 && W < 420) k *= 0.8;
+    return k;
+  }
   function burst(r, c, color, n) {
+    n = Math.max(5, Math.round(n * perfScale()));
     const cx = (c + 0.5) * cell, cy = (r + 0.5) * cell;
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -145,6 +162,7 @@ window.YXXL = window.YXXL || {};
     }
   }
   function sparkle(r, c, color, n) {
+    n = Math.max(4, Math.round(n * perfScale()));
     const cx = (c + 0.5) * cell, cy = (r + 0.5) * cell;
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -200,6 +218,13 @@ window.YXXL = window.YXXL || {};
         '<img class="obj-icon" src="' + img + '" alt="">' +
         '<span>' + s.board.collected + ' / ' + o.target + '</span></div>' +
         '<div class="obj-bar"><div class="obj-fill" style="width:' + Math.min(100, Math.round(s.board.collected / o.target * 100)) + '%"></div></div>';
+    } else if (o.type === 'both') {
+      const img2 = o.item === 'wolf' ? N.Assets.wolfURL() : N.Assets.cakeIngURL();
+      const pct = Math.min(100, Math.round(s.score / o.target * 100));
+      obj.innerHTML = '<div class="obj-row">' +
+        '<img class="obj-icon" src="' + img2 + '" alt="">' +
+        '<span>' + s.board.collected + ' / ' + o.count + '</span><span> · ' + s.score + ' / ' + o.target + '分</span></div>' +
+        '<div class="obj-bar"><div class="obj-fill" style="width:' + pct + '%"></div></div>';
     } else if (o.type === 'jelly') {
       const left = Board.jellyTotal(s.board);
       const pct = Math.min(100, Math.round((1 - left / o.target) * 100));
@@ -266,6 +291,7 @@ window.YXXL = window.YXXL || {};
     if (o.type === 'score') return session.score >= o.target;
     if (o.type === 'collect') return session.board.collected >= o.target;
     if (o.type === 'jelly') return Board.jellyTotal(session.board) === 0;
+    if (o.type === 'both') return session.score >= o.target && session.board.collected >= o.count;
     return false;
   }
 
@@ -329,6 +355,11 @@ window.YXXL = window.YXXL || {};
       tweenObj(v, { scale: 1 }, 320, easeOutBack);
       floater(s.type === 'pan' ? '平底锅!' : s.type === 'cake' ? '青草蛋糕!' : '羊角爆竹!', s.r, s.c, '#fff');
       addFlash([s.r, s.c], 'rgba(255,255,255,0.85)', 0.35);
+      /* 特殊棋子首见提示 */
+      if (!N.Store.tutSeen('tutSpecial')) {
+        N.Store.markTutSeen('tutSpecial');
+        N.UI.toast('特殊棋子诞生!把它和任意棋子交换,就能发动大招!');
+      }
     }
     await delay(260);
   }
@@ -397,6 +428,7 @@ window.YXXL = window.YXXL || {};
         N.Audio.sfx.collect();
         await animateCollect(got);
         updateHUD();
+        if (session.tutorial && session.tutorial.kind === 'collect') finishMechTutorial('collect');
       }
       /* 2. 消除 */
       const groups = Board.findMatches(session.board);
@@ -412,7 +444,11 @@ window.YXXL = window.YXXL || {};
         if (res.spawns.length) addScore(res.spawns.length * 40);
         if (res.iceBroken) { addScore(res.iceBroken * 20); N.Audio.sfx.ice(); }
         if (res.chainBroken) { addScore(res.chainBroken * 30); N.Audio.sfx.chain(); }
-        if (res.jellyCleared) addScore(res.jellyCleared * 10);
+        if (res.vineBroken) { addScore(res.vineBroken * 30); N.Audio.sfx.chain(); }
+        if (res.jellyCleared) {
+          addScore(res.jellyCleared * 10);
+          if (session.tutorial && session.tutorial.kind === 'jelly') finishMechTutorial('jelly');
+        }
         await animateMatch(res);
         if (res.triggered.length) {
           const ex = Board.resolveExplosions(session.board, res.triggered.map(function (t) {
@@ -421,7 +457,11 @@ window.YXXL = window.YXXL || {};
           addScore(ex.destroyed.length * 10 * idx + ex.triggered.length * 60);
           if (ex.iceBroken) { addScore(ex.iceBroken * 20); N.Audio.sfx.ice(); }
           if (ex.chainBroken) { addScore(ex.chainBroken * 30); N.Audio.sfx.chain(); }
-          if (ex.jellyCleared) addScore(ex.jellyCleared * 10);
+          if (ex.vineBroken) { addScore(ex.vineBroken * 30); N.Audio.sfx.chain(); }
+          if (ex.jellyCleared) {
+            addScore(ex.jellyCleared * 10);
+            if (session.tutorial && session.tutorial.kind === 'jelly') finishMechTutorial('jelly');
+          }
           N.Audio.sfx.special();
           await animateExplosion(ex);
         }
@@ -487,6 +527,7 @@ window.YXXL = window.YXXL || {};
       addScore(ex.destroyed.length * 10 + ex.triggered.length * 60);
       if (ex.iceBroken) { addScore(ex.iceBroken * 20); N.Audio.sfx.ice(); }
       if (ex.chainBroken) { addScore(ex.chainBroken * 30); N.Audio.sfx.chain(); }
+      if (ex.vineBroken) { addScore(ex.vineBroken * 30); N.Audio.sfx.chain(); }
       if (ex.jellyCleared) addScore(ex.jellyCleared * 10);
       await animateExplosion(ex);
       updateHUD();
@@ -568,21 +609,56 @@ window.YXXL = window.YXXL || {};
     await resolveCascades();
   }
 
-  /* ---- 结束 ---- */
-  function endGame(win) {
+  /* ---- 胜利奖励时间:剩余步数转化为特殊棋子连爆 ---- */
+  async function playRewardSequence(count) {
     const s = session;
-    s.state = 'over';
-    s.win = win;
+    const kinds = ['pan', 'bomb', 'cake'];
+    for (let i = 0; i < count; i++) {
+      let r = -1, c = -1;
+      for (let tries = 0; tries < 24; tries++) {
+        const rr = Math.floor(Math.random() * ROWS), cc = Math.floor(Math.random() * COLS);
+        const t = s.board.grid[rr][cc];
+        if (t && !t.ingredient && !t.special) { r = rr; c = cc; break; }
+      }
+      if (r < 0) break;
+      const kind = kinds[i % kinds.length];
+      s.board.grid[r][c] = Board.makeTile(s.board.grid[r][c].c, kind);
+      const v = { tile: s.board.grid[r][c], x: c, y: r, scale: 0.2, alpha: 1, dying: false };
+      s.visuals.push(v);
+      tweenObj(v, { scale: 1 }, 250, easeOutBack);
+      addFlash([r, c], 'rgba(255,255,255,0.85)', 0.3);
+      floater('奖励!', r, c, '#ffd24a');
+      N.Audio.sfx.reward();
+      await delay(300);
+      const ex = Board.resolveExplosions(s.board, [{ r: r, c: c, kind: 'cell' }]);
+      addScore(ex.destroyed.length * 20 + ex.triggered.length * 60);
+      await animateExplosion(ex);
+      const ev = Board.gravityAndFill(s.board);
+      if (ev.falls.length || ev.fills.length) await animateGravity(ev);
+      updateHUD();
+    }
+    floater('奖励时间!', 4, 4, '#ffd24a');
+    await delay(500);
+  }
+
+  /* ---- 结束 ---- */
+  async function endGame(win) {
+    const s = session;
     s.hint = null;
-    reconcileVisuals();
+    s.win = win;
     N.Audio.stopMusic();
     let stars = 0, bells = 0;
-    if (win && s.mode === 'level') {
+    if (win && (s.mode === 'level' || s.mode === 'daily')) {
       s.score += s.moves * 200;
       const st = s.cfg.stars;
       stars = 1 + (s.score >= st[1] ? 1 : 0) + (s.score >= st[2] ? 1 : 0);
       bells = 10 + stars * 5 + Math.min(20, Math.floor(s.score / 2000));
-      N.Store.setStars(s.cfg.id, stars);
+      if (s.mode === 'level') {
+        N.Store.setStars(s.cfg.id, stars);
+        N.Store.clearFails(s.cfg.id);
+      } else {
+        N.Store.setDailyBest(N.Levels.todayKey(), s.score);
+      }
       N.Store.addBells(bells);
       N.Audio.sfx.star(0);
       setTimeout(function () { N.Audio.sfx.star(1); }, 300);
@@ -590,14 +666,29 @@ window.YXXL = window.YXXL || {};
     } else if (s.mode === 'endless') {
       stars = 1 + (s.score >= 8000 ? 1 : 0) + (s.score >= 15000 ? 1 : 0);
       bells = Math.min(30, Math.floor(s.score / 1500));
-      const best = N.Store.setEndlessBest(s.score);
+      N.Store.setEndlessBest(s.score);
       N.Store.addBells(bells);
       N.Audio.sfx.star(0);
-      setTimeout(function () { if (best === s.score && s.score > 0) N.Audio.sfx.coin(); }, 400);
     } else {
       N.Audio.sfx.lose();
+      /* 难度保护:连续失败 3 次,村长送一个加步器 */
+      if (s.mode === 'level') {
+        N.Store.addFail(s.cfg.id);
+        if (N.Store.failCount(s.cfg.id) >= 3) {
+          N.Store.clearFails(s.cfg.id);
+          N.Store.addBooster('moves5', 1);
+          N.UI.toast('村长心疼大家,送来了一个加步器!');
+        }
+      }
     }
     updateHUD();
+    /* 胜利奖励时间 */
+    if (win && s.mode === 'level' && s.moves > 0) {
+      s.state = 'reward';
+      await playRewardSequence(Math.min(s.moves, 8));
+    }
+    s.state = 'over';
+    reconcileVisuals();
     setTimeout(function () {
       N.UI.showResult({
         mode: s.mode,
@@ -606,9 +697,10 @@ window.YXXL = window.YXXL || {};
         stars: stars,
         bells: bells,
         cfg: s.cfg,
-        best: s.mode === 'endless' ? N.Store.get().endlessBest : null
+        best: s.mode === 'endless' ? N.Store.get().endlessBest : (s.mode === 'daily' ? N.Store.dailyBest(N.Levels.todayKey()) : null),
+        canResume: s.mode === 'level' && !win && N.Store.get().bells >= 30
       });
-    }, win ? 900 : 700);
+    }, win ? 600 : 700);
   }
 
   /* ---- 输入 ---- */
@@ -685,6 +777,7 @@ window.YXXL = window.YXXL || {};
     ctx.drawImage(iconFor(v.tile), x - s / 2, y - s / 2, s, s);
     if (v.tile.ice > 0) ctx.drawImage(N.Assets.img(N.Assets.iceURL()), x - s / 2, y - s / 2, s, s);
     if (v.tile.chain) ctx.drawImage(N.Assets.img(N.Assets.chainURL()), x - s / 2, y - s / 2, s, s);
+    if (v.tile.vine) ctx.drawImage(N.Assets.img(N.Assets.vineURL()), x - s / 2, y - s / 2, s, s);
     ctx.globalAlpha = 1;
   }
 
@@ -750,35 +843,66 @@ window.YXXL = window.YXXL || {};
       drawCellOutline(session.hint[0].r, session.hint[0].c, 'rgba(255,230,80,' + pulse.toFixed(3) + ')', 3);
       drawCellOutline(session.hint[1].r, session.hint[1].c, 'rgba(255,230,80,' + pulse.toFixed(3) + ')', 3);
     }
-    /* 新手引导箭头 */
+    /* 新手引导与机制引导 */
     if (session.tutorial && session.tutorial.cells && session.state === 'idle') {
-      const a = session.tutorial.cells[0], b = session.tutorial.cells[1];
       const pulse = 0.55 + 0.4 * Math.sin(now / 220);
-      drawCellOutline(a.r, a.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4);
-      drawCellOutline(b.r, b.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4);
-      const x1 = (a.c + 0.5) * cell, y1 = (a.r + 0.5) * cell;
-      const x2 = (b.c + 0.5) * cell, y2 = (b.r + 0.5) * cell;
-      const dx = x2 - x1, dy = y2 - y1;
-      const len = Math.hypot(dx, dy) || 1;
-      const ux = dx / len, uy = dy / len;
-      const sx = x1 + ux * cell * 0.45, sy = y1 + uy * cell * 0.45;
-      const ex = x2 - ux * cell * 0.45, ey = y2 - uy * cell * 0.45;
-      ctx.strokeStyle = 'rgba(255,235,120,' + pulse.toFixed(3) + ')';
-      ctx.lineWidth = Math.max(4, cell * 0.09);
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(ex, ey);
-      ctx.stroke();
-      const ah = cell * 0.18;
-      const ang = Math.atan2(uy, ux);
-      ctx.fillStyle = 'rgba(255,235,120,' + pulse.toFixed(3) + ')';
-      ctx.beginPath();
-      ctx.moveTo(ex, ey);
-      ctx.lineTo(ex - ah * Math.cos(ang - 0.45), ey - ah * Math.sin(ang - 0.45));
-      ctx.lineTo(ex - ah * Math.cos(ang + 0.45), ey - ah * Math.sin(ang + 0.45));
-      ctx.closePath();
-      ctx.fill();
+      if (session.tutorial.kind === 'swap') {
+        const a = session.tutorial.cells[0], b = session.tutorial.cells[1];
+        if (a && b) {
+          drawCellOutline(a.r, a.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4);
+          drawCellOutline(b.r, b.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4);
+          const x1 = (a.c + 0.5) * cell, y1 = (a.r + 0.5) * cell;
+          const x2 = (b.c + 0.5) * cell, y2 = (b.r + 0.5) * cell;
+          const dx = x2 - x1, dy = y2 - y1;
+          const len = Math.hypot(dx, dy) || 1;
+          const ux = dx / len, uy = dy / len;
+          const sx = x1 + ux * cell * 0.45, sy = y1 + uy * cell * 0.45;
+          const ex = x2 - ux * cell * 0.45, ey = y2 - uy * cell * 0.45;
+          ctx.strokeStyle = 'rgba(255,235,120,' + pulse.toFixed(3) + ')';
+          ctx.lineWidth = Math.max(4, cell * 0.09);
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+          const ah = cell * 0.18;
+          const ang = Math.atan2(uy, ux);
+          ctx.fillStyle = 'rgba(255,235,120,' + pulse.toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.moveTo(ex, ey);
+          ctx.lineTo(ex - ah * Math.cos(ang - 0.45), ey - ah * Math.sin(ang - 0.45));
+          ctx.lineTo(ex - ah * Math.cos(ang + 0.45), ey - ah * Math.sin(ang + 0.45));
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else {
+        for (const t of session.tutorial.cells) {
+          drawCellOutline(t.r, t.c, 'rgba(255,240,120,' + pulse.toFixed(3) + ')', 4.5);
+        }
+        if (session.tutorial.kind === 'collect') {
+          /* 指向底部出口的下落箭头 */
+          const cols = {};
+          for (const t of session.tutorial.cells) cols[t.c] = true;
+          ctx.strokeStyle = 'rgba(255,210,90,' + pulse.toFixed(3) + ')';
+          ctx.lineWidth = Math.max(4, cell * 0.1);
+          ctx.lineCap = 'round';
+          for (const cc in cols) {
+            const c = parseInt(cc, 10);
+            const x = (c + 0.5) * cell;
+            const y0 = (session.tutorial.cells[0].r + 1.2) * cell;
+            const y1 = (ROWS - 0.35) * cell;
+            ctx.beginPath();
+            ctx.moveTo(x, Math.min(y0, y1 - cell * 0.3));
+            ctx.lineTo(x, y1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - cell * 0.16, y1 - cell * 0.14);
+            ctx.lineTo(x, y1);
+            ctx.lineTo(x + cell * 0.16, y1 - cell * 0.14);
+            ctx.stroke();
+          }
+        }
+      }
     }
     if (session.activeBooster && session.hoverCell) {
       drawCellOutline(session.hoverCell.r, session.hoverCell.c, 'rgba(255,120,80,0.9)', 3);
@@ -854,24 +978,25 @@ window.YXXL = window.YXXL || {};
   function loop() {
     const now = performance.now();
     updateTweens(now);
-    if (session && session.state !== 'over') {
-      if (session.state === 'idle' && !session.activeBooster) {
-        if (session.tutorial) {
-          /* 引导期间持续刷新建议步 */
-          session.tutorial.timer += 33;
-          if (session.tutorial.timer > 1500) {
-            session.tutorial.timer = 0;
-            const mv = Board.findPossibleMove(session.board);
-            if (mv) session.tutorial.cells = mv;
-          }
-        } else if (session.mode === 'level') {
-          if (performance.now() - session.lastInput > 3500) {
-            if (!session.hint) session.hint = Board.findPossibleMove(session.board);
-          }
+    if (!session || session.state === 'over') return;
+    /* 页面隐藏时只推进动画,不绘制(省电) */
+    if (document.hidden) return;
+    if (session.state === 'idle' && !session.activeBooster) {
+      if (session.tutorial) {
+        /* 引导期间持续刷新建议格 */
+        session.tutorial.timer += 33;
+        if (session.tutorial.timer > 1200) {
+          session.tutorial.timer = 0;
+          const cells = tutorialCells(session.board, session.tutorial.kind);
+          if (cells) session.tutorial.cells = cells;
+        }
+      } else if (session.mode === 'level') {
+        if (performance.now() - session.lastInput > 3500) {
+          if (!session.hint) session.hint = Board.findPossibleMove(session.board);
         }
       }
-      draw(now);
     }
+    draw(now);
   }
 
   function resize() {
@@ -885,6 +1010,26 @@ window.YXXL = window.YXXL || {};
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     W = w;
     cell = w / COLS;
+  }
+
+  /* 引导目标格计算 */
+  function tutorialCells(board, kind) {
+    if (kind === 'swap') {
+      const mv = Board.findPossibleMove(board);
+      return mv;
+    }
+    const cells = [];
+    if (kind === 'collect') {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        const t = board.grid[r][c];
+        if (t && t.ingredient) cells.push({ r: r, c: c });
+      }
+    } else if (kind === 'jelly') {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (board.jelly[r][c] > 0 && cells.length < 6) cells.push({ r: r, c: c });
+      }
+    }
+    return cells.length ? cells : null;
   }
 
   /* ---- 对外接口 ---- */
@@ -923,12 +1068,18 @@ window.YXXL = window.YXXL || {};
       Board.generate(session.board);
       rebuildVisuals();
       resize();
-      /* 新手引导:第 1 关首次进入时提示如何交换 */
+      /* 新手引导与机制首见引导 */
       session.tutorial = null;
+      const o = cfg.objective || {};
       if (mode === 'level' && cfg.id === 1 && !N.Store.tutorialDone()) {
-        const mv0 = Board.findPossibleMove(session.board);
-        session.tutorial = { cells: mv0, timer: 0 };
-        N.UI.showTutorialTip();
+        session.tutorial = { kind: 'swap', cells: tutorialCells(session.board, 'swap'), timer: 0 };
+        N.UI.showTutorialTip('👆 先点一个棋子选中,再点相邻棋子交换;三个相同连成一线就消除!');
+      } else if (mode === 'level' && o.type === 'collect' && !N.Store.tutSeen('tutCollect')) {
+        session.tutorial = { kind: 'collect', cells: tutorialCells(session.board, 'collect'), timer: 0 };
+        N.UI.showTutorialTip('💡 消除灰太狼下方的棋子,让它掉落到棋盘底部出口!');
+      } else if (mode === 'level' && o.type === 'jelly' && !N.Store.tutSeen('tutJelly')) {
+        session.tutorial = { kind: 'jelly', cells: tutorialCells(session.board, 'jelly'), timer: 0 };
+        N.UI.showTutorialTip('💡 消除覆盖果冻的棋子,清完所有果冻就能过关!');
       }
       updateHUD();
       N.Audio.startMusic(cfg.isBoss ? 'boss' : (cfg.chapter >= 5 ? 'boss' : 'normal'));
@@ -944,7 +1095,26 @@ window.YXXL = window.YXXL || {};
       await trySwap(a, b);
       return true;
     },
+    /* 失败续命:补充步数并继续对局 */
+    resume: function (extraMoves) {
+      if (!session) return false;
+      session.moves += extraMoves || 0;
+      session.state = 'idle';
+      session.win = false;
+      session.lastInput = performance.now();
+      updateHUD();
+      N.Audio.startMusic(session.cfg.isBoss ? 'boss' : (session.cfg.chapter >= 5 ? 'boss' : 'normal'));
+      return true;
+    },
     getSession: function () { return session; },
+    /* 自测钩子:强制渲染一帧(验证画布绘制管线) */
+    __renderTest: function () {
+      if (!session) return false;
+      draw(performance.now());
+      ctx.fillStyle = '#ff0044';
+      ctx.fillRect(5, 5, 20, 20);
+      return true;
+    },
     resize: resize
   };
 })(window.YXXL);

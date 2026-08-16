@@ -81,16 +81,32 @@ window.YXXL = window.YXXL || {};
     collectLv(18, '狼群围堵', 'wolf', 5, 36, 7, [10000, 17000, 24000], { ice: { density: 0.12, layers: 1 }, chain: { density: 0.06 } }, 2, [0, 2, 4, 6, 8]),
     collectLv(19, '甜品仓库', 'cake', 4, 36, 7, [10000, 17000, 24000], { ice: { density: 0.08, layers: 1 } }, 2, [0, 2, 4, 6, 8]),
     collectLv(20, '机关重重', 'wolf', 6, 38, 7, [11000, 19000, 27000], { ice: { density: 0.15, layers: 2 }, chain: { density: 0.06 } }, 2, [0, 2, 4, 6, 8]),
-    jellyLv(21, '迷雾森林', 4, 0, 44, 8, [13000, 21000, 29000], { ice: { density: 0.08, layers: 1 } }),
+    jellyLv(21, '迷雾森林', 4, 0, 44, 8, [13000, 21000, 29000], { ice: { density: 0.08, layers: 1 }, vine: { density: 0.05 } }),
     scoreLv(22, '森林夜行', 15000, 30, 8, { chain: { density: 0.12 } }),
-    collectLv(23, '狼嚎山谷', 'wolf', 6, 38, 8, [13000, 21000, 29000], { ice: { density: 0.1, layers: 1 }, chain: { density: 0.06 } }, 2, [0, 2, 4, 6, 8]),
+    /* 双目标:分数 + 收集 */
+    L(23, '狼嚎山谷', {
+      moves: 40, colors: 8,
+      objective: { type: 'both', target: 10000, item: 'wolf', count: 4 },
+      stars: [13000, 21000, 29000],
+      ingredient: { type: 'wolf', target: 5 },
+      concurrent: 2, spawnCols: [0, 2, 4, 6, 8],
+      obstacles: { ice: { density: 0.1, layers: 1 }, vine: { density: 0.05 } }
+    }),
     collectLv(24, '蛋糕大盗', 'cake', 4, 38, 8, [13000, 21000, 29000], { ice: { density: 0.12, layers: 1 }, chain: { density: 0.06 } }, 2, [0, 2, 4, 6, 8]),
     collectLv(25, '蕉太狼的请求', 'wolf', 7, 40, 8, [15000, 24000, 33000], { ice: { density: 0.15, layers: 1 }, chain: { density: 0.08 } }, 2, [0, 2, 4, 6, 8]),
-    jellyLv(26, '狼堡之巅', 4, 1, 46, 8, [16000, 25000, 34000], { ice: { density: 0.1, layers: 1 }, chain: { density: 0.06 } }),
-    scoreLv(27, '决战前夕', 20000, 32, 8, { ice: { density: 0.12, layers: 1 }, chain: { density: 0.12 } }),
-    collectLv(28, '群狼乱舞', 'wolf', 7, 40, 8, [16000, 25000, 34000], { ice: { density: 0.15, layers: 1 }, chain: { density: 0.1 } }, 2, [0, 2, 4, 6, 8]),
-    collectLv(29, '最后的蛋糕', 'cake', 5, 40, 8, [16000, 25000, 34000], { ice: { density: 0.18, layers: 1 }, chain: { density: 0.08 } }, 2, [0, 2, 4, 6, 8]),
-    collectLv(30, '决战灰太狼!', 'wolf', 9, 45, 8, [18000, 28000, 38000], { ice: { density: 0.2, layers: 2 }, chain: { density: 0.1 } }, 2, [0, 2, 4, 6, 8])
+    jellyLv(26, '狼堡之巅', 4, 1, 46, 8, [16000, 25000, 34000], { ice: { density: 0.1, layers: 1 }, vine: { density: 0.06 } }),
+    scoreLv(27, '决战前夕', 18000, 36, 8, { ice: { density: 0.12, layers: 1 }, chain: { density: 0.12 } }),
+    /* 双目标:分数 + 收集 */
+    L(28, '群狼乱舞', {
+      moves: 44, colors: 8,
+      objective: { type: 'both', target: 10000, item: 'wolf', count: 4 },
+      stars: [16000, 25000, 34000],
+      ingredient: { type: 'wolf', target: 5 },
+      concurrent: 2, spawnCols: [0, 2, 4, 6, 8],
+      obstacles: { ice: { density: 0.15, layers: 1 }, chain: { density: 0.08 }, vine: { density: 0.06 } }
+    }),
+    collectLv(29, '最后的蛋糕', 'cake', 4, 42, 8, [16000, 25000, 34000], { ice: { density: 0.18, layers: 1 }, chain: { density: 0.08 } }, 2, [0, 2, 4, 6, 8]),
+    collectLv(30, '决战灰太狼!', 'wolf', 8, 48, 8, [18000, 28000, 38000], { ice: { density: 0.15, layers: 2 }, chain: { density: 0.08 }, vine: { density: 0.06 } }, 2, [0, 2, 4, 6, 8])
   ];
 
   /* ---- 剧情台词 ---- */
@@ -167,16 +183,45 @@ window.YXXL = window.YXXL || {};
       { who: 'meiyangyang', text: '这是属于我们羊村的胜利！' }
     ],
     loseTaunts: [
-      { who: 'huitailang', text: '哈哈！羊羊们，认输吧！' },
-      { who: 'huitailang', text: '就这点本事还想夺回蛋糕？' },
-      { who: 'hongtailang', text: '连他们都打不过，灰太狼你晚上别吃饭了！' },
-      { who: 'huitailang', text: '我灰太狼大王是无敌的！' }
+      { who: 'huitailang', text: '哈哈!羊羊们,认输吧!' },
+      { who: 'huitailang', text: '就这点本事还想夺回蛋糕?' },
+      { who: 'hongtailang', text: '连他们都打不过,灰太狼你晚上别吃饭了!' },
+      { who: 'huitailang', text: '我灰太狼大王是无敌的!' },
+      { who: 'huitailang', text: '羊村的小鬼们,回家喝青草汁去吧!' },
+      { who: 'huitailang', text: '再来一百次,结果也一样!' },
+      { who: 'hongtailang', text: '哼!看来今晚的晚餐又没着落了。' },
+      { who: 'xiaohuihui', text: '爸爸别笑了,我们一起想办法…' }
     ]
   };
+
+  /* 每日挑战:按日期生成固定种子 */
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function hashStr(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
 
   N.Levels = {
     CHAPTERS: CHAPTERS,
     LEVELS: LEVELS,
+    todayKey: todayKey,
+    getDaily: function () {
+      return {
+        id: 0, name: '每日挑战', chapter: 0, isBoss: false,
+        colors: 6, moves: 30,
+        objective: { type: 'score', target: 12000 },
+        obstacles: {}, spawnCols: [], concurrent: 1,
+        stars: [12000, 20000, 30000],
+        seed: hashStr(todayKey())
+      };
+    },
     ENDLESS: {
       id: 0, name: '无尽挑战', chapter: 0, isBoss: false,
       colors: 6, moves: 60,
