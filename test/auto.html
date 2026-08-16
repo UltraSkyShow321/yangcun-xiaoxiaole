@@ -424,13 +424,13 @@
     log('自测完成:通过 ' + pass + ' 项,失败 ' + fail + ' 项', fail === 0);
     logEl.textContent = lines.join('\n') + '\n' + (fail === 0 ? '✅ 全部通过' : '❌ 存在失败项');
   }
-  /* 只有带 ?run=1 才自动运行,避免玩家误入测试页看到机器人自动对局 */
+  /* 只有带 ?run=1 才运行,否则直接跳转到游戏本体,避免玩家误入 */
   if (location.search.indexOf('run=1') >= 0) {
     run().catch(function (e) {
       log('自测异常: ' + e.message + ' @ ' + (e.stack || '').split('\n')[1], false);
     });
   } else {
-    logEl.textContent = '⚠️ 这是自动化测试页,不是游戏!\n\n玩游戏请打开:\nhttp://localhost:8600/\n\n(如需运行自测,请打开 http://localhost:8600/test/auto.html?run=1)\n\n测试机器人不会自动运行,此页面不会开始对局。';
+    location.replace('/');
   }
 })();
 </script>

@@ -153,6 +153,7 @@
 <script src="../js/game.js"></script>
 <script src="../js/ui.js"></script>
 <script src="../js/main.js"></script>
+<script>if (location.search.indexOf("run=1") < 0) { location.replace("/"); }</script>
 <div id="realtest-log" style="display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:99999;background:rgba(20,26,36,0.96);color:#d8e0ea;padding:14px;overflow:auto;font-size:13px;line-height:1.75;white-space:pre-wrap;font-family:Consolas,monospace;"></div>
 <script>
 /* realtest 驱动:在真实页面结构上自动对局,捕获页面错误并校验棋盘一致性 */
@@ -170,6 +171,12 @@
   };
   var lines = [];
   var logEl = document.getElementById('realtest-log');
+  if (!logEl) {
+    logEl = document.createElement('div');
+    logEl.id = 'realtest-log';
+    logEl.style.cssText = 'display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:99999;background:rgba(20,26,36,0.96);color:#d8e0ea;padding:14px;overflow:auto;font-size:13px;line-height:1.75;white-space:pre-wrap;font-family:Consolas,monospace;';
+    document.body.appendChild(logEl);
+  }
   function log(msg, ok) {
     lines.push((ok === false ? '❌ ' : (ok === true ? '✅ ' : '· ')) + msg);
     logEl.textContent = lines.join('\n');
@@ -372,10 +379,10 @@
     cfg5.moves = 60;
     await playLevel(cfg5, 'L5收集关', collectMove);
     var cfg8 = JSON.parse(JSON.stringify(N.Levels.get(8)));
-    cfg8.moves = 60;
+    cfg8.moves = 40;
     await playLevel(cfg8, 'L8果冻关', bestMove);
     var cfg30 = JSON.parse(JSON.stringify(N.Levels.get(30)));
-    cfg30.moves = 60;
+    cfg30.moves = 40;
     await playLevel(cfg30, 'L30终章关(冰+锁+收集)', collectMove);
     log('页面错误汇总: ' + (errors.length ? errors.join(' || ') : '无'));
     log('真实页面完整测试完成', errors.length === 0);

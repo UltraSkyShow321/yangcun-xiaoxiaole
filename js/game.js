@@ -240,8 +240,10 @@ window.YXXL = window.YXXL || {};
         tip.style.display = 'none';
       }
     }
+    let totalEquipped = 0;
     N.Store.BOOSTERS.forEach(function (b) {
       const count = s.boosters[b.key] || 0;
+      totalEquipped += count;
       const btn = document.createElement('button');
       btn.className = 'boost-btn' + (s.activeBooster === b.key ? ' active' : '') + (count <= 0 ? ' empty' : '');
       btn.innerHTML = '<img src="' + N.Assets.boosterIconURL(b.key) + '" alt="' + b.name + '">' +
@@ -250,6 +252,12 @@ window.YXXL = window.YXXL || {};
       btn.addEventListener('click', function (e) { e.stopPropagation(); onBoosterTap(b.key); });
       bar.appendChild(btn);
     });
+    if (totalEquipped === 0) {
+      const hint = document.createElement('div');
+      hint.className = 'boost-empty-hint';
+      hint.textContent = '未携带道具:开局前在准备界面点选道具卡即可携带(最多 3 个)';
+      bar.appendChild(hint);
+    }
   }
 
   /* ---- 目标判断 ---- */
@@ -718,21 +726,24 @@ window.YXXL = window.YXXL || {};
         ctx.stroke();
       }
     }
-    /* 棋子(滑动中的棋子最后绘制,浮在其它棋子之上) */
+    /* 棋子(滑动中的棋子最后绘制,浮在其它棋子之上;选中棋子同样浮起) */
     const size = cell * 0.9;
+    const selTile = session.selected ? session.board.grid[session.selected.r][session.selected.c] : null;
     const moving = [];
     for (const v of session.visuals) {
       const isMoving = Math.abs(v.x - Math.round(v.x)) > 0.03 ||
         Math.abs(v.y - Math.round(v.y)) > 0.03 ||
-        Math.abs((v.scale || 1) - 1) > 0.03;
+        Math.abs((v.scale || 1) - 1) > 0.03 ||
+        (selTile && v.tile === selTile);
       if (isMoving) { moving.push(v); continue; }
       drawVisual(v, false, size);
     }
     for (const v of moving) drawVisual(v, true, size);
     /* 选中与提示 */
     if (session.selected) {
-      const pulse = 0.6 + 0.4 * Math.sin(now / 200);
-      drawCellOutline(session.selected.r, session.selected.c, 'rgba(255,255,255,' + pulse.toFixed(3) + ')', 4);
+      const pulse = 0.55 + 0.4 * Math.sin(now / 180);
+      drawCellOutline(session.selected.r, session.selected.c, 'rgba(255,220,80,' + pulse.toFixed(3) + ')', 5);
+      drawCellOutline(session.selected.r, session.selected.c, 'rgba(255,255,255,0.95)', 2.5);
     }
     if (session.hint && !session.activeBooster && !session.tutorial) {
       const pulse = 0.35 + 0.3 * Math.sin(now / 240);

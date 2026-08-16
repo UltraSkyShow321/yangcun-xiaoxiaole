@@ -20,5 +20,11 @@ window.YXXL = window.YXXL || {};
     };
     window.addEventListener('pointerdown', boot);
     window.addEventListener('keydown', boot);
+    /* 自检模式:在真实游戏页面上运行完整自动测试(仅开发用) */
+    if (location.search.indexOf('selftest=1') >= 0) {
+      const s2 = document.createElement('script');
+      s2.src = 'test/realtest-driver.js';
+      document.body.appendChild(s2);
+    }
   });
 })(window.YXXL);
