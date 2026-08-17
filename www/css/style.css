@@ -1,5 +1,10 @@
 /* 羊村消消乐 - 样式 */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 html, body { height: 100%; }
 body {
   font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
@@ -400,3 +405,71 @@ body {
 }
 #loader.hide { opacity: 0; pointer-events: none; }
 .loader-inner { animation: titleBounce 1.2s infinite; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+/* ==================== 移动端适配 ==================== */
+/* 刘海屏/全面屏安全区 */
+.top-bar {
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+}
+.game-hud {
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+.menu-body { padding-bottom: max(34px, env(safe-area-inset-bottom)); }
+.booster-bar { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.settings-list { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+
+/* 横屏(手机):紧凑布局,内容超高可滚动 */
+@media (orientation: landscape) and (max-height: 520px) {
+  #screen-menu, #screen-levels, #screen-shop, #screen-settings,
+  #screen-help, #screen-game { overflow-y: auto; }
+  .game-hud { padding: 4px 10px; }
+  .game-hud .btn-icon { width: 36px; height: 36px; font-size: 15px; }
+  .hud-moves, .hud-score { padding: 3px 10px; }
+  .hud-moves span, .hud-score span { font-size: 16px; }
+  .hud-moves i, .hud-score i { font-size: 10px; }
+  .hud-objective { padding: 4px 8px; font-size: 11px; }
+  .obj-bar { height: 5px; margin-top: 2px; }
+  .board-wrap { padding: 0 8px; }
+  .booster-bar { padding: 4px 8px calc(8px + env(safe-area-inset-bottom)); gap: 6px; }
+  .boost-btn { width: 42px; height: 42px; }
+  .obj-tip, .tutorial-tip, .booster-mode-tip { margin: 0 8px 4px; padding: 4px 8px; font-size: 12px; }
+  .menu-body { padding: 10px 20px 16px; }
+  .game-title { font-size: 30px; letter-spacing: 2px; margin-bottom: 8px; }
+  .menu-chars { margin-bottom: 10px; gap: 6px; }
+  .menu-char { width: 34px; height: 34px; }
+  .menu-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; max-width: 520px; }
+  .menu-buttons .btn { padding: 9px 12px; font-size: 15px; margin-bottom: 8px; }
+  .menu-tip { display: none; }
+  .top-bar { padding: 6px 12px; }
+  .top-title { font-size: 16px; }
+  .chapter-tabs { padding: 6px 12px; }
+  .chapter-banner { padding: 8px 12px; }
+  .level-path { gap: 12px; padding: 10px 0 4px; }
+  .panel { padding: 16px 18px; max-width: 560px; }
+  .prelevel-panel { max-width: 560px; }
+  .prelevel-boosters { grid-template-columns: repeat(6, 1fr); }
+  .story-panel { max-width: 600px; }
+}
+
+/* 平板与桌面大屏 */
+@media (min-width: 700px) {
+  #app { max-width: 760px; }
+  .btn { font-size: 18px; padding: 15px 18px; }
+  .game-title { font-size: 56px; }
+  .menu-char { width: 58px; height: 58px; }
+  .menu-buttons { max-width: 400px; }
+  .top-title { font-size: 21px; }
+  .chapter-banner b { font-size: 18px; }
+  .node-name { font-size: 16px; }
+  .level-node { width: 66%; }
+  .board-wrap canvas { border-radius: 18px; }
+  .hud-moves span, .hud-score span { font-size: 24px; }
+  .boost-btn { width: 60px; height: 60px; }
+  .shop-card > img { width: 76px; height: 76px; }
+  .equip-card img { width: 56px; height: 56px; }
+  .help-item img { width: 56px; height: 56px; }
+}

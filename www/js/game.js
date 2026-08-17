@@ -1001,7 +1001,10 @@ window.YXXL = window.YXXL || {};
 
   function resize() {
     const wrap = canvas.parentElement;
-    const w = Math.min(wrap.clientWidth || 360, 560);
+    const availH = window.innerHeight || 800;
+    /* 棋盘尺寸自动适配:横屏/矮视口时压缩,始终给 HUD 与道具栏留出空间 */
+    const hudSpace = availH < 500 ? 128 : 208;
+    const w = Math.max(240, Math.min(wrap.clientWidth || 360, 560, availH - hudSpace));
     canvas.style.width = w + 'px';
     canvas.style.height = w + 'px';
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
