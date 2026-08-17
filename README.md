@@ -21,14 +21,14 @@
 
 ## 多平台
 
-| 平台 | 产物 | 说明 |
+| 平台 | 方式 | 说明 |
 |---|---|---|
 | 网页端 | 本项目 | 双击 index.html 或静态服务器;支持 PWA 安装到桌面 |
-| Windows | `release/羊村消消乐-1.0.0-portable.exe` | 便携版,双击即玩 |
-| Android | `release/羊村消消乐-1.0.0-release.apk` | 正式签名版,直接安装 |
-| iOS/iPadOS | GitHub Actions 构建 | 推送到 GitHub 后 Actions 自动产出未签名 ipa(安装需自签/开发者账号) |
-| macOS | GitHub Actions 构建 | Actions 自动产出未签名 app zip(本地可直接运行) |
-| 鸿蒙 NEXT | `harmonyos/` 壳工程 | DevEco Studio 打开构建(签名需华为开发者账号),见 `harmonyos/README.md` |
+| Windows | 原生 exe | `release/羊村消消乐-1.0.0-portable.exe`(GitHub Actions 也会自动构建) |
+| Android | 原生 APK | `release/羊村消消乐-1.0.0-release.apk`(正式签名,GitHub Actions 也会自动构建) |
+| macOS / iOS / iPadOS / 鸿蒙 | **PWA 添加到桌面** | 用系统浏览器打开部署好的网页版,选择"添加到主屏幕/桌面",即得 App 级体验(全屏、图标、离线) |
+
+> iOS/鸿蒙的原生安装包需要 Apple / 华为开发者账号签名(平台方强制要求)。当前策略下,这两个平台直接用 PWA 即可,无需签名、无需商店,体验与原生基本一致。仓库中仍保留了 `ios/` 与 `harmonyos/` 原生工程供需要上架时使用。
 
 ## 目录结构
 
@@ -70,9 +70,9 @@ npx electron-builder --win portable
 # Android release apk(已配置签名,密钥见 android/app/release.keystore)
 mkdir -p www && cp -r index.html css js sw.js manifest.webmanifest icon-*.png www/
 npx cap sync android && cd android && ./gradlew assembleRelease
-# iOS(需 macOS + Xcode)
-npx cap sync ios && cd ios/App && pod install && xcodebuild ...
 ```
+
+> 说明:macOS/iOS/鸿蒙不再单独出原生包,改用 PWA 添加到桌面(见上表);如需上架原生,`ios/` 与 `harmonyos/` 工程仍在仓库中。
 
 国内网络镜像:
 ```bash
