@@ -49,62 +49,11 @@ jobs:
         run: npx cap sync android
       - name: 构建签名 release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
       - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
           name: 羊村消消乐-android-release
           path: android/app/build/outputs/apk/release/app-release.apk
-
-  build-mac:
-    name: macOS dmg/zip
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: 安装依赖
-        run: npm ci
-      - name: 打包 macOS(未签名,可本地运行;上架需 Apple 账号签名)
-        run: npx electron-builder --mac zip
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: 上传 mac 包
-        uses: actions/upload-artifact@v4
-        with:
-          name: 羊村消消乐-mac
-          path: |
-            release/*.zip
-            release/*.dmg
-
-  build-ios:
-    name: iOS 未签名 ipa
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: 安装依赖
-        run: npm ci
-      - name: 同步 web 资源
-        run: npx cap sync ios
-      - name: 安装 Pods
-        working-directory: ios/App
-        run: pod install
-      - name: 构建(未签名)
-        working-directory: ios/App
-        run: |
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            -derivedDataPath build archive
-          APP_PATH="build/Build/Intermediates.noindex/ArchiveIntermediates/App/BuildProductsPath/Release-iphoneos/App.app"
-          mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
-          zip -r 羊村消消乐-unsigned.ipa Payload
-      - name: 上传 ipa(未签名,需自签/开发者账号签名后安装)
-        uses: actions/upload-artifact@v4
-        with:
-          name: 羊村消消乐-ios-unsigned
-          path: ios/App/羊村消消乐-unsigned.ipa
