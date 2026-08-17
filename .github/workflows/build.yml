@@ -29,6 +29,33 @@ jobs:
           name: 羊村消消乐-win-portable
           path: release/*.exe
 
+  build-android:
+    name: Android 签名 release APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: 设置 Android SDK
+        uses: android-actions/setup-android@v3
+      - name: 安装依赖
+        run: npm ci
+      - name: 同步 web 资源
+        run: npx cap sync android
+      - name: 构建签名 release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 羊村消消乐-android-release
+          path: android/app/build/outputs/apk/release/app-release.apk
+
   build-mac:
     name: macOS dmg/zip
     runs-on: macos-latest
