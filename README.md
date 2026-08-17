@@ -24,6 +24,7 @@
 | 平台 | 方式 | 说明 |
 |---|---|---|
 | 网页端 | 本项目 | 双击 index.html 或静态服务器;支持 PWA 安装到桌面 |
+| 网页端(线上) | GitHub Pages | https://ultraskyshow321.github.io/yangcun-xiaoxiaole/ |
 | Windows | 原生 exe | `release/羊村消消乐-1.0.0-portable.exe`(GitHub Actions 也会自动构建) |
 | Android | 原生 APK | `release/羊村消消乐-1.0.0-release.apk`(正式签名,GitHub Actions 也会自动构建) |
 | macOS / iOS / iPadOS / 鸿蒙 | **PWA 添加到桌面** | 用系统浏览器打开部署好的网页版,选择"添加到主屏幕/桌面",即得 App 级体验(全屏、图标、离线) |
