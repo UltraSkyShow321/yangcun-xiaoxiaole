@@ -99,8 +99,9 @@ jobs:
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             -derivedDataPath build archive
+          APP_PATH="build/Build/Intermediates.noindex/ArchiveIntermediates/App/BuildProductsPath/Release-iphoneos/App.app"
           mkdir -p Payload
-          cp -r build/Build/Products/Release-iphoneos/App.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r 羊村消消乐-unsigned.ipa Payload
       - name: 上传 ipa(未签名,需自签/开发者账号签名后安装)
         uses: actions/upload-artifact@v4
